@@ -1,0 +1,754 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>
+    ApProgXimate Programming
+  </title>
+
+  <script src="jquery-2.1.4.min.js"></script>
+  <script type="text/javascript" src="jquery.layout-1.4.1.js"></script>
+  <link rel="stylesheet" type="text/css" href="layout-default-latest.css" />
+  <script src="jquery-ui.min.js"></script>
+  <script src="apProgXimate.js"></script>
+  <link href='jquery-ui.min.css' rel='stylesheet' type='text/css'>
+  <script src="Recorderjs/dist/recorder.js"></script>
+  <style>
+  #eq > span {
+    height:150px; float:left; margin:5px
+  }
+  /*#code  {
+  height:150px; float:left; margin:5px
+  }*/
+  </style>
+  <style type="text/css" media="screen">
+  .ace_editor {
+    position: relative !important;
+    border: 1px solid lightgray;
+    margin: auto;
+    height: 100%;
+    width: 100%;
+  }
+
+  .editorPanel {
+    background: white;
+    padding: 0px;
+
+  }
+
+  .ui-accordion .ui-accordion-content {padding:0px }
+
+  #edit8 {
+    position: relative !important;
+    border: 1px solid lightgray;
+    margin: auto;
+    height: 100%;
+    width: 100%;
+  }
+
+  .ace_editor.fullScreen {
+    height: auto;
+    width: auto;
+    border: 0;
+    margin: 0;
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+  }
+
+  #topButtonBar {
+    float:right;
+  }
+
+  .fullScreen {
+    overflow: hidden
+  }
+
+  .onOffRadios {
+    float: right;
+    width: auto;
+    font-size: 50%;
+  }
+
+  .ui-widget {
+    font-family: Verdana,Arial,sans-serif;
+    font-size: 0.8em;
+    font-weight: normal;
+  }
+  /*.scrollmargin {
+  height: 500px;
+  text-align: center;
+  }*/
+  <style type='text/css'>
+  ul { list-style: none; }
+  #recordingslist audio { display: block; margin-bottom: 10px; }
+  </style>
+</style>
+
+<!-- Our javascript code -->
+<script type="text/javascript">
+//Module.apProgXimateJS.genCode([1,2,3]);
+var appx = new Module.approgx();
+
+// Temporary patch until all browsers support unprefixed context.
+AudioContext = AudioContext || webkitAudioContext;
+
+// init() once the page has finished loading.
+//window.onload = init;
+
+var context;
+var source = 0;
+var jsProcessor = 0;
+var preGain;
+var limiter;
+var analyser;
+var analyserView1;
+var gene;
+var GENESIZE = 50;
+var editor;
+var GLOBALMEMSIZE=10;
+var globalMemory = [];
+for (i=0; i < GLOBALMEMSIZE; i++) {
+  globalMemory[i] = 0;
+};
+
+var recorder;
+function startRecording(button) {
+  recorder && recorder.record();
+  button.disabled = true;
+  button.nextElementSibling.disabled = false;
+}
+function stopRecording(button) {
+  recorder && recorder.stop();
+  button.disabled = true;
+  button.previousElementSibling.disabled = false;
+
+  // create WAV download link using audio data blob
+  createDownloadLink();
+  recorder.clear();
+}
+function createDownloadLink() {
+  recorder && recorder.exportWAV(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var li = document.createElement('li');
+    var au = document.createElement('audio');
+    var hf = document.createElement('a');
+
+    au.controls = true;
+    au.src = url;
+    hf.href = url;
+    hf.download = new Date().toISOString() + '.wav';
+    hf.innerHTML = hf.download;
+    li.appendChild(au);
+    li.appendChild(hf);
+    recordingslist.appendChild(li);
+  });
+}
+
+function process(event) {
+  //Get left/right input and output arrays
+  inputArrayL = event.inputBuffer.getChannelData(0);
+  inputArrayR = event.inputBuffer.getChannelData(1);
+  outputArrayL = event.outputBuffer.getChannelData(0);
+  outputArrayR = event.outputBuffer.getChannelData(1);
+
+  n = inputArrayL.length;
+
+  for (i = 0; i < n; ++i) {
+    x = approxRenderer();
+    outputArrayL[i] = x;
+    outputArrayR[i] = x;
+  }
+}
+
+
+// if ( !window.requestAnimationFrame ) {
+
+//         window.requestAnimationFrame = ( function() {
+
+//                 return window.webkitRequestAnimationFrame ||
+//                 window.mozRequestAnimationFrame || // comment out if FF4 is slow (it caps framerate at ~30fps: https://bugzilla.mozilla.org/show_bug.cgi?id=630127)
+//                 window.oRequestAnimationFrame ||
+//                 window.msRequestAnimationFrame ||
+//                 function( /* function FrameRequestCallback */ callback, /* DOMElement Element */ element ) {
+
+//                         window.setTimeout( callback, 1000 / 60 );
+
+//                 };
+
+//         } )();
+
+// }
+
+function randomiseGene() {
+  for(i=0; i < GENESIZE; i++) {
+    gene.set(i,Math.random());
+  }
+}
+
+
+function initAudio() {
+
+  context = new AudioContext();
+  source = context.createBufferSource();
+
+  // This AudioNode will do the amplitude modulation effect directly in JavaScript
+  jsProcessor = context.createScriptProcessor(1024);
+  jsProcessor.onaudioprocess = process;
+
+  analyser = context.createAnalyser();
+  analyser.fftSize = 2048;
+
+  preGain = context.createGain();
+  preGain.value = 0.1;
+  limiter = context.createDynamicsCompressor();
+  limiter.threshold.value = -0.1;
+  limiter.knee.value = 0.0;
+  limiter.ratio.value = 2.0;
+  limiter.attack.value = 0.005;
+  limiter.release.value = 0.05;
+
+
+  // Connect the processing graph: source -> jsProcessor -> analyser -> destination
+  source.connect(jsProcessor);
+  jsProcessor.connect(preGain);
+  preGain.connect(limiter);
+  limiter.connect(analyser);
+  analyser.connect(context.destination);
+  recorder = new Recorder(preGain);
+
+}
+
+function generate() {
+  appx.collectDataTypes();
+  code = appx.genCode(gene, true);
+  jQuery.globalEval(code);
+  //console.log(code);
+  editor.setValue(code);
+  editor.clearSelection();
+}
+
+function init() {
+  appx.addFuncDef("add", "function add() {\n \
+    this.play = function(j1, j2) {\n \
+      return j1 + j2;\n \
+    }\n \
+  }\n", 2, 99999);
+  // appx.addFuncDef("mix", "function mix() {\n \
+  //    this.play = function(j1, j2, j3) {\n \
+  //        return (j1 * j3) + (j2 * (1 - j3));\n \
+  //    }\n \
+  // }\n", 3, 99999);
+  appx.addFuncDef("mul", "function mul() {\n \
+    this.play = function(j1, j2) {\n \
+      return j1 * j2;\n \
+    }\n \
+  }\n", 2, 99999);
+
+  appx.addFuncDef("saw", "function saw() {\n \
+    this.osc = new Module.maxiOsc();\n \
+    this.play = function(j0) {\n \
+      return this.osc.sawn(Module.maxiMap.linexp(j0,-1,1,20,20000));\n \
+    }\n \
+  }\n", 1, 99999);
+
+  appx.addFuncDef("lfsaw", "function lfsaw() {\n \
+    this.osc = new Module.maxiOsc();\n \
+    this.play = function(j0) {\n \
+      return this.osc.saw(Module.maxiMap.linexp(j0,-1,1,0.01,15));\n \
+    }\n \
+  }\n", 1, 99999);
+
+  appx.addFuncDef("square", "function square() {\n \
+    this.osc = new Module.maxiOsc();\n \
+    this.play = function(j0) {\n \
+      return this.osc.square(Module.maxiMap.linexp(j0,-1,1,20,20000));\n \
+    }\n \
+  }\n", 1, 99999);
+
+  // appx.addFuncDef("lfsquare", "function lfsquare() {\n \
+  //   this.osc = new Module.maxiOsc();\n \
+  //   this.play = function(j0) {\n \
+  //     return this.osc.square(Module.maxiMap.linexp(j0,-1,1,0.01,15));\n \
+  //   }\n \
+  // }\n", 1, 99999);
+  //
+  // appx.addFuncDef("lpf", "function lpf() {\n \
+  //   this.filter = new Module.maxiFilter();\n \
+  //   this.play = function(j0,j1) {\n \
+  //     return this.filter.lopass(j0, (j1 + 1) / 2);\n \
+  //   }\n \
+  // }\n", 2, 99999);
+  // appx.addFuncDef("lpfz", "function lpfz() {\n \
+  //    this.filter = new Module.maxiFilter();\n \
+  //    this.play = function(j0,j1,j2) {\n \
+  //        return this.filter.lores(j0, Module.maxiMap.linexp(j1,-1,1,20,10000), Module.maxiMap.linlin(j2, -1, 1, 1, 5));\n \
+  //    }\n \
+  // }\n", 3, 99999);
+  //
+  // appx.addFuncDef("hpf", "function hpf() {\n \
+  //    this.filter = new Module.maxiFilter();\n \
+  //    this.play = function(j0,j1) {\n \
+  //        return this.filter.hipass(j0, (j1 + 1) / 2);\n \
+  //    }\n \
+  // }\n", 2, 99999);
+  //
+  appx.addFuncDef("gate", "function gate() {\n \
+    this.filter = new Module.maxiFilter();\n \
+    this.ampctl = 0; \
+    this.play = function(j0,j1, j2) {\n \
+      var w; \
+      w = this.filter.lopass(j1 > j2 ? 1 : 0 , 0.5); \
+      return w * j0;\n \
+    }\n \
+  }\n", 3, 99999);
+
+
+  appx.addFuncDef("tanh_", "function tanh_() {\n \
+    this.play = function(j0) {\n \
+      return Math.tanh(j0);\n \
+    }\n \
+  }\n", 1, 99999);
+
+  // appx.addFuncDef("gwrite", "function gwrite() {\n \
+  //    this.play = function(j0, j1) {\n \
+  //        var index; \
+  //        index = Math.floor(j0 * 3);\
+  //        globalMemory[index] = Math.tanh(globalMemory[index] + j1); \
+  //        return j0;\n \
+  //    }\n \
+  // }\n", 2, 99999);
+  //
+  // appx.addFuncDef("gread", "function gread() {\n \
+  //    this.play = function(j0) {\n \
+  //        var index; \
+  //        index = Math.floor(j0 * 3);\
+  //        return globalMemory[index];\n \
+  //    }\n \
+  // }\n", 1, 99999);
+  appx.addFuncDef("gwr1", "function gwr1() {\n \
+    this.play = function(j0) {\n \
+      globalMemory[0] = Math.tanh(globalMemory[0] + (j0)); \
+      return j0;\n \
+    }\n \
+  }\n", 1, 99999);
+
+  appx.addFuncDef("gr1", "function gr1() {\n \
+    this.play = function(j0) {\n \
+      return globalMemory[0] * j0;\n \
+    }\n \
+  }\n", 1, 99999);
+
+  // appx.addFuncDef("seq", "function seq() {\n \
+  //   this.vals = [1,9,4,-6,3]; \
+  //   this.idx = 0; \
+  //   this.last =0; \
+  //    this.play = function(j0) {\n \
+  //        if (this.last < 0 && j0 >= 0) {\
+  //          this.idx++; \
+  //          if (this.idx == this.vals.length) this.idx = 0; \
+  //        } \
+  //        this.last = j0; \
+  //        return this.vals[this.idx] / 10.0;\n \
+  //    }\n \
+  // }\n", 1, 99999);
+
+
+  gene = new Module.FloatVector();
+
+  for(i=0; i < GENESIZE; i++) {
+    gene.push_back(Math.random());
+  }
+
+  // $("#code").html(code.replace("\\n", "<br>"));
+
+  //analyserView1 = new AnalyserView("view1");
+  //analyserView1.initByteBuffer();
+  // $(function() {
+  //   for(i=0; i < GENESIZE; i++) {
+  //     $("<span />", {})
+  //     .appendTo("#eq");
+  //   }
+  //   idx = 0;
+  //   $( "#eq > span" ).each(function() {
+  //     $( this ).empty().slider({
+  //       min:0,
+  //       max:1,
+  //       value: gene.get(idx),
+  //       range: "min",
+  //       animate: true,
+  //       step:0.0001,
+  //       orientation: "vertical",
+  //       // change: function(event, ui) {
+  //       //   console.log(ui);
+  //       // }
+  //     });
+  //     $( this ).slider().on("slide", {idx:idx}, function(event, ui) {
+  //       console.log(event.data);
+  //       gene.set(event.data.idx, ui.value);
+  //       // code = appx.genCode(gene, true);
+  //       // console.log(code);
+  //       // jQuery.globalEval(code);
+  //       // //$("#code").html(code.replace("\\n", "<br>"));
+  //       // editor.setValue(code);
+  //       // editor.clearSelection();
+  //       generate();
+  //     });
+  //     idx++;
+  //   });
+  // });
+
+}
+
+
+// navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
+//
+// navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
+// console.log('No live audio input: ' + e);
+// });
+
+</script>
+
+<!-- load ace -->
+<script src="ace-builds/src-min/ace.js"></script>
+<script type="text/javascript">
+var edi;
+var bHeight;
+var mouseIsDown;
+function updateCanvas() {
+  var c = document.getElementById("eastCanvas");
+  var ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  //ctx.strokeStyle = "#333";
+  // for(i=0; i < gene.size(); i++) {
+  //   var w = gene.get(i);
+  //   ctx.strokeStyle = "rgb(" + Math.floor(w * 255.0) + ",0," + (255 - Math.floor(w * 100.0)) +")";
+  //   w = (w * 2) - 1;
+  //   //ctx.strokeRect(c.width/2,(i*bHeight) + 1,(c.width/2) * w, (bHeight - 2));
+  //   ctx.moveTo((c.width/2) + ((c.width/2) * w), (i*bHeight) + (bHeight/2));
+  // }
+  var sx,sy;
+  sx = (c.width/2) + ((c.width/3) * ((gene.get(0) * 2) - 1));
+  sy = bHeight / 2;
+  ctx.moveTo(sx,sy);
+  var mod = 1;
+  for(i=0; i < gene.size(); i++) {
+    var w = gene.get(i);
+    ctx.strokeStyle = "rgba(" + Math.floor(w * 255.0) + ",0," + (255 - Math.floor(w * 100.0)) +", 0.4)";
+    w = (w * 2) - 1;
+    var nx = (c.width/2) + ((c.width/3) * w);
+    var ny = (i*bHeight) + (bHeight/2);
+    //ctx.strokeRect(c.width/2,(i*bHeight) + 1,(c.width/2) * w, (bHeight - 2));
+    ctx.strokeRect(nx - (bHeight/2), ny - (bHeight/2), bHeight, bHeight);
+    mod = sx < nx ? 1 : -1;
+    ctx.quadraticCurveTo(sx+((sx - nx) / 2), sy+bHeight, nx, ny);
+    mod = mod * -1;
+    sx = nx;
+    sy = ny;
+  }
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(0,0,0,1)";
+  ctx.stroke();
+}
+
+var accordionID = 0;
+function addCodePanel(funcName) {
+  //var idx = $('.codeAccordion').children().length;
+  console.log(accordionID);
+  console.log(funcName);
+  var butDel='button' + accordionID + 'del';
+  var butOn='button' + accordionID + 'a';
+  var butOff='button' + accordionID + 'b';
+  var accRowID = 'accRow' + accordionID;
+  var newDiv = '<div id="' + accRowID + '"><h1><span class="accHeader">' + funcName +
+  '</span><div id="onOffRadioSet' + accordionID + '" class="onOffRadios"><button id="' + butDel + '" class="delButton">Delete</button><button id="' + butOn + '">On</button><button id="' + butOff + '">Off</button>' +
+  '</div>' +
+  '</h1><div class="editorPanel"></div></div>';
+  // var newDiv = '<div><h1><span class="accHeader">' + functionNames.get(i) +
+  // '</span><div id="funcdata" data-name="' + functionNames.get(i) +'" style="display:none"></div><div id="onOffRadioSet' + i + '" class="onOffRadios"><button id="' + butOn + '">On</button><button id="' + butOff + '">Off</button>' +
+  // '</div>' +
+  // '</h1><div class="editorPanel"></div></div>';
+  $('.codeAccordion').append(newDiv)
+  $("#" + butOn).button().click({"bOn": butOn, "bOff": butOff, "funcName":funcName}, function (event) {
+    appx.enableFDef(event.data.funcName, 1);
+    generate();
+    $("#" + event.data.bOn).css({"background":"LimeGreen"});
+    $("#" + event.data.bOn).css({"color":"white"});
+    $("#" + event.data.bOff).css({"background":"white"});
+    $("#" + event.data.bOff).css({"color":"black"});
+    //$(this).prop("disabled", true).trigger("change");
+    return false;
+  })
+  .css({"background":"LimeGreen"})
+  .css({"color":"white"});
+  $("#" + butOff).button().click({"bOn": butOn, "bOff": butOff, "funcName":funcName}, function (event) {
+    console.log(event.data.funcName);
+    appx.enableFDef(event.data.funcName, 0);
+    generate();
+    $("#" + event.data.bOff).css({"background":"OrangeRed"});
+    $("#" + event.data.bOff).css({"color":"white"});
+    $("#" + event.data.bOn).css({"background":"white"});
+    $("#" + event.data.bOn).css({"color":"black"});
+    //    $(this).prop("disabled", true).trigger("change");
+    return false;
+  })
+  .css({"background":"white"})
+  .css({"color":"black"});
+  $("#" + butDel).button().click({"funcName":funcName}, function (event) {
+    console.log("del: " + event.data.funcName);
+    console.log($('#' + accRowID));
+    $('#' + accRowID).remove();
+    //$(this).parent('div').parent('div').next('div').andSelf().remove();
+    $('.codeAccordion').accordion("refresh");
+    appx.removeFDef(event.data.funcName);
+    generate();
+    $('.codeAccordion').find(".delButton").css({"visibility":"hidden"});
+    return false;
+  })
+  .css({"background":"white"})
+  .css({"color":"red"})
+  .css({"visibility":"hidden"});
+  accordionID++;
+}
+
+$(document).ready(function(){
+  init();
+  var apxlayout = $("body").layout({applyDemoStyles:true, resizeable: true, west_minSize: 100});
+  apxlayout.sizePane("west", 400);
+
+
+  var dom = require("ace/lib/dom");
+  ace.require("ace/ext/language_tools");
+
+  //add command to all new editor instaces
+  require("ace/commands/default_commands").commands.push({
+    name: "Toggle Fullscreen",
+    bindKey: "F5",
+    exec: function(editor) {
+      var fullScreen = dom.toggleCssClass(document.body, "fullScreen")
+      dom.setCssClass(editor.container, "fullScreen", fullScreen)
+      editor.setAutoScrollEditorIntoView(!fullScreen)
+      editor.resize()
+    }
+  })
+
+  $("#randButton").button()
+  .click(function() {
+    randomiseGene();
+    generate();
+    updateCanvas();
+  });
+  $("#geneSizeSpinner").spinner({
+    min:5,
+    max:1000,
+    //todo: handle text editing here
+    spin: function(ev, ui) {
+      GENESIZE = ui.value;
+      gene.resize(GENESIZE,0);
+      randomiseGene();
+      generate();
+      updateCanvas();
+    }
+  }).val(GENESIZE).width(30);
+  //$("#geneSizeSpinner").value(10);
+  $("#addCodeButton").button()
+  .click(function() {
+    console.log("Add");
+    appx.addFuncDef("renameMe", "//add some comments about your function here\nfunction renameMe() {\n \
+\t//add state variables here, e.g.\n\
+\t//this.osc = new Module.maxiOsc();\n \
+\tthis.play = function(j0) {\n \
+\t\t//do something here\n \
+\t\treturn j0;\n \
+\t}\n \
+}\n", 1, 99999);
+
+    addCodePanel("renameMe");
+    $('.codeAccordion').accordion("refresh");
+  });
+  $("#deleteCodeButton").button()
+  .click(function() {
+    console.log("Delete");
+    $('.codeAccordion').find(".delButton").css({"visibility":"visible"});
+  });
+
+  $(".codeAccordion").accordion({
+    header: "> div > h1",
+    collapsible: true,
+    active: false,
+    autoHeight: true,
+    autoActivate: true,
+    heightStyle:	"fill",
+    animate: 80,
+    activate: function(event, ui) {
+//      var funcName = ui.newHeader.find("div").first().attr("data-name");
+      // var titleNode = ui.newHeader.first().contents().filter(function() {
+      //   return this.nodeType == 3;
+      // });
+      var titleNode = ui.newHeader.find("span.accHeader");
+      var funcName = titleNode.html();
+      console.log(titleNode.html());
+      if (ui.newHeader.length==0) {
+        ui.newPanel.empty()
+        ui.oldPanel.empty();
+      } else {
+        ui.oldPanel.empty();
+        //ui.oldPanel.append('<pre id="edit8"></pre>')
+        ui.newPanel.html('<pre id="edit8"></pre>')
+        edi = ace.edit("edit8");
+        edi.setTheme("ace/theme/chrome");
+        edi.session.setMode("ace/mode/javascript");
+        edi.setFontSize(10);
+        edi.renderer.setScrollMargin(10, 10);
+        edi.setOptions({
+          autoScrollEditorIntoView: false,
+        });
+        edi.$blockScrolling = Infinity;
+        edi.setValue(appx.getCode(funcName));
+        edi.clearSelection();
+        edi.on("change", function(e) {
+          try {
+            eval("var checker = " + edi.getValue());
+            if(checker.length==0) {
+              console.log(checker.name);
+              var testInst = new checker();
+              console.log(testInst);
+              if (testInst.play != undefined) {
+                console.log("function check passed");
+                if (checker.name != titleNode.html()) {
+                  appx.removeFDef(titleNode.html());
+                  titleNode.html(checker.name);
+                }
+                var numArgs = testInst.play.length;
+                console.log(numArgs);
+                appx.addFuncDef(checker.name, edi.getValue(), numArgs, 99999);
+                generate();
+              }else{
+                console.log("function check failed");
+              }
+            }else{
+              console.log("function check failed");
+            }
+          } catch (e) {
+            if (e instanceof SyntaxError) {
+              console.log(e.message);
+            } else {
+              console.log( e );
+            }
+          }
+          return true;
+        })
+      }
+    }
+  });
+
+
+  functionNames = new Module.StringVector();
+  appx.getFunctionNames(functionNames);
+  for(i=0; i < functionNames.size(); i++) {
+    addCodePanel(functionNames.get(i));
+  }
+  $('.codeAccordion').accordion("refresh");
+
+  // create first editor
+  editor = ace.edit("editor");
+  editor.setTheme("ace/theme/chrome");
+  editor.session.setMode("ace/mode/javascript");
+  editor.setFontSize(9);
+  editor.session.setUseWorker(false);
+  editor.renderer.setScrollMargin(10, 10);
+  editor.setOptions({
+    autoScrollEditorIntoView: false,
+    readOnly: true,
+    highlightActiveLine: false,
+    highlightGutterLine: false
+  });
+  editor.$blockScrolling = Infinity;
+
+  generate();
+  initAudio();
+
+  var c = document.getElementById("eastCanvas");
+  c.height = $('#eastCanvas').height();
+  c.width = $('#eastCanvas').width();
+  var ctx = c.getContext("2d");
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0,0,c.width,c.height);
+  bHeight = c.height / GENESIZE;
+  mouseIsDown = false;
+  updateCanvas();
+  function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top
+    };
+  }
+  c.addEventListener('mousemove', function(evt) {
+    var mousePos = getMousePos(c, evt);
+    var message = 'pos: ' + mousePos.x + ',' + mousePos.y;
+    if (mouseIsDown) {
+      updateGeneFromMouse(mousePos);
+    }
+  }, false);
+  function updateGeneFromMouse(mousePos) {
+    var geneIdx = Math.floor(mousePos.y / bHeight);
+    var newVal = (mousePos.x / c.width);
+    gene.set(geneIdx, newVal);
+    generate();
+    updateCanvas();
+  }
+  c.addEventListener('mousedown', function(evt) {
+    var mousePos = getMousePos(c, evt);
+    updateGeneFromMouse(mousePos);
+    mouseIsDown = true;
+  }, false);
+  c.addEventListener('mouseup', function(evt) {
+//    var mousePos = getMousePos(c, evt);
+    mouseIsDown = false;
+  }, false);
+
+
+});
+</script>
+
+</head>
+
+<body>
+
+  <div class="ui-layout-center">
+    <!-- <div style="" id="eq">
+  </div>
+-->
+<pre id="editor">
+</pre>
+</div>
+<div class="ui-layout-north">ApProgXimate Audio
+  <!-- <button onclick="startRecording(this);">record</button>
+  <button onclick="stopRecording(this);" disabled>stop</button>
+  <ul id="recordingslist"></ul> -->
+  <div id="topButtonBar">
+    Gene Size:
+    <input type="text" id="geneSizeSpinner"/>
+    <button id="randButton">
+      Randomise
+    </button>
+  </div>
+</div>
+<!--<canvas id="view1" width="800px" height="600px"></canvas>-->
+<div class="ui-layout-south">South</div>
+<div class="ui-layout-east"><canvas id="eastCanvas" style="height: 100%; width: 100%;"></canvas> </div>
+<div class="ui-layout-west">
+  <div id="codeButtonBar">
+    <button id="deleteCodeButton">Delete</button>
+    <button id="addCodeButton">Add</button>
+  </div>
+  <div id="accordion1" class="codeAccordion">
+  </div>
+</div>
+</body></html>
