@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		38311D351BBDC714009E4263 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 38311D341BBDC714009E4263 /* main.cpp */; };
+		38311D3D1BBDC75B009E4263 /* ApProgXimate.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 38311D3B1BBDC75B009E4263 /* ApProgXimate.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -23,8 +24,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		381E46201BF2A6E700E961C0 /* ApProgXimateEmbind.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ApProgXimateEmbind.cpp; sourceTree = "<group>"; };
 		38311D311BBDC714009E4263 /* ApProgXimateLib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ApProgXimateLib; sourceTree = BUILT_PRODUCTS_DIR; };
 		38311D341BBDC714009E4263 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		38311D3B1BBDC75B009E4263 /* ApProgXimate.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ApProgXimate.cpp; sourceTree = "<group>"; };
+		38311D3C1BBDC75B009E4263 /* ApProgXimate.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ApProgXimate.hpp; sourceTree = "<group>"; };
+		38FC85EA1C3288C400382D79 /* fdef.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = fdef.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +63,10 @@
 			isa = PBXGroup;
 			children = (
 				38311D341BBDC714009E4263 /* main.cpp */,
+				38311D3B1BBDC75B009E4263 /* ApProgXimate.cpp */,
+				38311D3C1BBDC75B009E4263 /* ApProgXimate.hpp */,
+				381E46201BF2A6E700E961C0 /* ApProgXimateEmbind.cpp */,
+				38FC85EA1C3288C400382D79 /* fdef.hpp */,
 			);
 			path = ApProgXimateLib;
 			sourceTree = "<group>";
@@ -118,6 +127,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				38311D3D1BBDC75B009E4263 /* ApProgXimate.cpp in Sources */,
 				38311D351BBDC714009E4263 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -235,6 +245,7 @@
 				38311D3A1BBDC714009E4263 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
