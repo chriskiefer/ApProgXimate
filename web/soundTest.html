@@ -12,6 +12,7 @@
   <script src="apProgXimate.js"></script>
   <link href='jquery-ui.min.css' rel='stylesheet' type='text/css'>
   <script src="Recorderjs/dist/recorder.js"></script>
+  <script src="jquery-popup-overlay/jquery.popupoverlay.js"></script>
   <style>
   #eq > span {
     height:150px; float:left; margin:5px
@@ -536,6 +537,34 @@ $(document).ready(function(){
       editor.resize()
     }
   })
+  $("#saveSnapButton").button()
+  .click(function() {
+    console.log("saveSnap");
+    var newSnap = {};
+    newSnap.geneSize = GENESIZE;
+    newSnap.gene = new Array(GENESIZE);
+    for(i=0; i < GENESIZE; i++) newSnap.gene[i] = gene.get(i);
+//    var numFuncs = $('.codeAccordion').children().length;
+
+    functionNames = new Module.StringVector();
+    newSnap.funcs = new Array(functionNames.size());
+    appx.getFunctionNames(functionNames);
+    for(i=0; i < functionNames.size(); i++) {
+      newSnap.funcs[i] = appx.getCode(functionNames.get(i));
+    }
+    localStorage.setItem('snapshot', JSON.stringify(newSnap));
+    console.log(JSON.parse(localStorage.getItem('snapshot')));
+  });
+  $("#loadSnapButton").button()
+  .click(function() {
+    console.log("loadSnap");
+  });
+
+  $("#helpButton").button()
+  .click(function() {
+    console.log("test");
+    $('#my_popup').popup('show');
+  });
 
   $("#randButton").button()
   .click(function() {
@@ -713,13 +742,15 @@ $(document).ready(function(){
     mouseIsDown = false;
   }, false);
 
-
+  localStorage.setItem('test','cheese');
 });
 </script>
 
 </head>
 
 <body>
+
+
 
   <div class="ui-layout-center">
     <!-- <div style="" id="eq">
@@ -733,6 +764,12 @@ $(document).ready(function(){
   <button onclick="stopRecording(this);" disabled>stop</button>
   <ul id="recordingslist"></ul> -->
   <div id="topButtonBar">
+    <button id="saveSnapButton">
+      Save Snapshot
+    </button>
+    <button id="loadSnapButton">
+      Load Snapshot
+    </button>
     Gene Size:
     <input type="text" id="geneSizeSpinner"/>
     <button id="randButton">
@@ -741,7 +778,9 @@ $(document).ready(function(){
   </div>
 </div>
 <!--<canvas id="view1" width="800px" height="600px"></canvas>-->
-<div class="ui-layout-south">South</div>
+<div class="ui-layout-south">
+  <button id="helpButton">?</button>
+</div>
 <div class="ui-layout-east"><canvas id="eastCanvas" style="height: 100%; width: 100%;"></canvas> </div>
 <div class="ui-layout-west">
   <div id="codeButtonBar">
@@ -751,4 +790,15 @@ $(document).ready(function(){
   <div id="accordion1" class="codeAccordion">
   </div>
 </div>
+
+<div id="my_popup" style="background:white; max-width:30em;">
+
+   Approximate Programming<br>
+   How does it work?
+
+   <!-- Add an optional button to close the popup -->
+   <button class="my_popup_close" >Close</button>
+
+ </div>
+
 </body></html>
