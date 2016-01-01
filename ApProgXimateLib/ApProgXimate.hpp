@@ -30,6 +30,7 @@ public:
     virtual void collectDataTypes();
     virtual void getFunctionNames(std::vector<std::string> &names);
     virtual std::string getCode(std::string functionName);
+    virtual bool isEnabled(std::string functionName);
     virtual void removeFDef(std::string name);
     
 protected:
@@ -107,6 +108,7 @@ public:
     void getFunctionNames(std::vector<std::string> &names) override;
     std::string getCode(std::string functionName) override;
     void removeFDef(std::string name) override;
+    bool isEnabled(std::string functionName) override;
 protected:
     std::string dataTypeToString(unsigned int t) override;
     unsigned int getFirstDataType() override;

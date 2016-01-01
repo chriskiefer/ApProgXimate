@@ -173,6 +173,10 @@ std::string apProgXimate::getCode(std::string functionName) {
     return funcDefs[functionName].functionDef;
 }
 
+bool apProgXimate::isEnabled(std::string functionName) {
+    return funcDefs[functionName].enabled;
+}
+
 
 //////////////
 
@@ -388,4 +392,8 @@ std::string apProgXimateJS::getCode(std::string functionName) {
 
 void apProgXimateJS::removeFDef(std::string name) {
     apProgXimate::removeFDef(name);
+}
+
+bool apProgXimateJS::isEnabled(std::string functionName) {
+    return apProgXimate::isEnabled(functionName);
 }

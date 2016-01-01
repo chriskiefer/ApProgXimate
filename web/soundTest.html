@@ -22,6 +22,7 @@
   }*/
   </style>
   <style type="text/css" media="screen">
+
   .ace_editor {
     position: relative !important;
     border: 1px solid lightgray;
@@ -225,6 +226,9 @@ function initAudio() {
 function generate() {
   appx.collectDataTypes();
   code = appx.genCode(gene, true);
+  for(i=0; i < GLOBALMEMSIZE; i++) {
+    globalMemory[i] = 0;
+  }
   jQuery.globalEval(code);
   //console.log(code);
   editor.setValue(code);
@@ -458,7 +462,7 @@ function updateCanvas() {
 }
 
 var accordionID = 0;
-function addCodePanel(funcName) {
+function addCodePanel(funcName, enabled) {
   //var idx = $('.codeAccordion').children().length;
   console.log(accordionID);
   console.log(funcName);
@@ -482,7 +486,6 @@ function addCodePanel(funcName) {
     $("#" + event.data.bOn).css({"color":"white"});
     $("#" + event.data.bOff).css({"background":"white"});
     $("#" + event.data.bOff).css({"color":"black"});
-    //$(this).prop("disabled", true).trigger("change");
     return false;
   })
   .css({"background":"LimeGreen"})
@@ -495,7 +498,6 @@ function addCodePanel(funcName) {
     $("#" + event.data.bOff).css({"color":"white"});
     $("#" + event.data.bOn).css({"background":"white"});
     $("#" + event.data.bOn).css({"color":"black"});
-    //    $(this).prop("disabled", true).trigger("change");
     return false;
   })
   .css({"background":"white"})
@@ -504,7 +506,6 @@ function addCodePanel(funcName) {
     console.log("del: " + event.data.funcName);
     console.log($('#' + accRowID));
     $('#' + accRowID).remove();
-    //$(this).parent('div').parent('div').next('div').andSelf().remove();
     $('.codeAccordion').accordion("refresh");
     appx.removeFDef(event.data.funcName);
     generate();
@@ -514,29 +515,36 @@ function addCodePanel(funcName) {
   .css({"background":"white"})
   .css({"color":"red"})
   .css({"visibility":"hidden"});
+  if(!enabled) {
+    $("#" + butOff).css({"background":"OrangeRed"});
+    $("#" + butOff).css({"color":"white"});
+    $("#" + butOn).css({"background":"white"});
+    $("#" + butOn).css({"color":"black"});
+  }
   accordionID++;
 }
 
 $(document).ready(function(){
   init();
-  var apxlayout = $("body").layout({applyDemoStyles:true, resizeable: true, west_minSize: 100});
+  var apxlayout = $("body").layout({applyDemoStyles:true, resizeable: true, west_minSize: 100, east_minSize: 300});
   apxlayout.sizePane("west", 400);
+  apxlayout.sizePane("east", 400);
 
 
   var dom = require("ace/lib/dom");
   ace.require("ace/ext/language_tools");
 
   //add command to all new editor instaces
-  require("ace/commands/default_commands").commands.push({
-    name: "Toggle Fullscreen",
-    bindKey: "F5",
-    exec: function(editor) {
-      var fullScreen = dom.toggleCssClass(document.body, "fullScreen")
-      dom.setCssClass(editor.container, "fullScreen", fullScreen)
-      editor.setAutoScrollEditorIntoView(!fullScreen)
-      editor.resize()
-    }
-  })
+  // require("ace/commands/default_commands").commands.push({
+  //   name: "Toggle Fullscreen",
+  //   bindKey: "F5",
+  //   exec: function(editor) {
+  //     var fullScreen = dom.toggleCssClass(document.body, "fullScreen")
+  //     dom.setCssClass(editor.container, "fullScreen", fullScreen)
+  //     editor.setAutoScrollEditorIntoView(!fullScreen)
+  //     editor.resize()
+  //   }
+  // })
   $("#saveSnapButton").button()
   .click(function() {
     console.log("saveSnap");
@@ -548,9 +556,11 @@ $(document).ready(function(){
 
     functionNames = new Module.StringVector();
     newSnap.funcs = new Array(functionNames.size());
+    newSnap.funcsEnabled = new Array(functionNames.size());
     appx.getFunctionNames(functionNames);
     for(i=0; i < functionNames.size(); i++) {
       newSnap.funcs[i] = appx.getCode(functionNames.get(i));
+      newSnap.funcsEnabled[i] = appx.isEnabled(functionNames.get(i));
     }
     localStorage.setItem('snapshot', JSON.stringify(newSnap));
     console.log(JSON.parse(localStorage.getItem('snapshot')));
@@ -558,6 +568,46 @@ $(document).ready(function(){
   $("#loadSnapButton").button()
   .click(function() {
     console.log("loadSnap");
+    var rows = $('.codeAccordion').find("span.accHeader");
+    console.log(rows.first().html());
+    rows.each(function(i) {
+      console.log($(this).html());
+      appx.removeFDef($(this).html());
+    })
+    rows = $('.codeAccordion').children();
+    $.each(rows, function(idx,val){
+      console.log(val);
+      val.remove();
+    });
+    var snap = JSON.parse(localStorage.getItem('snapshot'));
+    console.log(snap);
+    for(i=0; i < snap.funcs.length; i++) {
+//      console.log(snap.funcs[i]);
+      eval("var checker = " + snap.funcs[i]);
+      if(checker.length==0) {
+        console.log(checker.name);
+        var testInst = new checker();
+        if (testInst.play != undefined) {
+          console.log("function check passed");
+          var numArgs = testInst.play.length;
+          appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
+          appx.enableFDef(checker.name, snap.funcsEnabled[i]);
+          addCodePanel(checker.name, snap.funcsEnabled[i]);
+        }else{
+          console.log("function check failed");
+        }
+      }else{
+        console.log("function check failed");
+      }
+    };
+    $('.codeAccordion').accordion("refresh");
+
+    gene.resize(snap.geneSize, 0);
+    for(i=0; i < snap.geneSize; i++) {
+      gene.set(i, snap.gene[i]);
+    }
+    generate();
+    updateCanvas();
   });
 
   $("#helpButton").button()
@@ -597,7 +647,7 @@ $(document).ready(function(){
 \t}\n \
 }\n", 1, 99999);
 
-    addCodePanel("renameMe");
+    addCodePanel("renameMe", true);
     $('.codeAccordion').accordion("refresh");
   });
   $("#deleteCodeButton").button()
@@ -680,7 +730,7 @@ $(document).ready(function(){
   functionNames = new Module.StringVector();
   appx.getFunctionNames(functionNames);
   for(i=0; i < functionNames.size(); i++) {
-    addCodePanel(functionNames.get(i));
+    addCodePanel(functionNames.get(i), true);
   }
   $('.codeAccordion').accordion("refresh");
 
@@ -752,7 +802,7 @@ $(document).ready(function(){
 
 
 
-  <div class="ui-layout-center">
+  <div class="ui-layout-east">
     <!-- <div style="" id="eq">
   </div>
 -->
@@ -781,7 +831,7 @@ $(document).ready(function(){
 <div class="ui-layout-south">
   <button id="helpButton">?</button>
 </div>
-<div class="ui-layout-east"><canvas id="eastCanvas" style="height: 100%; width: 100%;"></canvas> </div>
+<div class="ui-layout-center"><canvas id="eastCanvas" style="height: 100%; width: 100%;"></canvas> </div>
 <div class="ui-layout-west">
   <div id="codeButtonBar">
     <button id="deleteCodeButton">Delete</button>
@@ -791,10 +841,11 @@ $(document).ready(function(){
   </div>
 </div>
 
-<div id="my_popup" style="background:white; max-width:30em;">
+<div id="my_popup" style="background:white; padding:10px; border-box:10px; max-width:30em;">
 
-   Approximate Programming<br>
-   How does it work?
+   <div><h1>Approximate Programming</h1></div>
+   <div><h2>What is approximate programming?</h2></div>
+   <div>Approximage programming</div>
 
    <!-- Add an optional button to close the popup -->
    <button class="my_popup_close" >Close</button>

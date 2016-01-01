@@ -93,6 +93,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
     .function("removeFDef", &apProgXimateJS::removeFDef)
     .function("getFunctionNames", &apProgXimateJS::getFunctionNames)
     .function("getCode", &apProgXimateJS::getCode)
+    .function("isEnabled", &apProgXimateJS::isEnabled)
     ;
     
 //    fdef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int argt[], unsigned int rType, unsigned int lim=9999999)
