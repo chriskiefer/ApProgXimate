@@ -14,6 +14,10 @@
 
  emcc --bind -O2 --memory-init-file 0 -o apProgXimate.js -I/Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs  ApProgXimateEmbind.cpp ApProgXimate.cpp /Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs/maximilian.cpp
  
+  emcc --bind -O2 -s TOTAL_MEMORY=268435456 -o apProgXimate.js -I/Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs  ApProgXimateEmbind.cpp ApProgXimate.cpp /Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs/maximilian.cpp --preload-file samples/distortedkick10.wav
+ 
+ 
+ https://kripken.github.io/emscripten-site/docs/getting_started/Tutorial.html#tutorial-files
  */
 
 #include <emscripten/bind.h>
@@ -68,21 +72,53 @@ EMSCRIPTEN_BINDINGS(my_module) {
     .class_function("clamp", &maxiMap::clamp<double>)
     ;
     
-//}
-//
-//
-////std::string genCode(std::vector<float> &gene, bool clear=true) override;
-//
-//EMSCRIPTEN_BINDINGS(my_module) {
-    
-//    class_<fdef>("fdef")
-//    .constructor<>()
-//    //    .class_function("init", &fdef::init)
-//    .property("fName", &fdef::functionName)
-//    .property("def", &fdef::functionDef)
-//    .property("limit", &fdef::limit)
-//    .property("argTypes", &fdef::argTypes)
-//    ;
+    class_<maxiDelayline>("maxiDelayline")
+    .constructor<>()
+    .function("dl", select_overload<double(double,int,double)>(&maxiDelayline::dl))
+    ;
+
+    class_<maxiDyn>("maxiDyn")
+    .constructor<>()
+    .function("gate", &maxiDyn::gate)
+    .function("compressor", &maxiDyn::compressor)
+    ;
+
+    class_<maxiEnv>("maxiEnv")
+    .constructor<>()
+    .function("ar", &maxiEnv::ar)
+    .function("adsr", &maxiEnv::adsr)
+    ;
+
+    class_<maxiDistortion>("maxiDistortion")
+    .constructor<>()
+    .function("atanDist", &maxiDistortion::atanDist)
+    .function("fastAtanDist", &maxiDistortion::fastAtanDist)
+    ;
+
+    class_<maxiFlanger>("maxiFlanger")
+    .constructor<>()
+    .function("flange", &maxiFlanger::flange)
+    ;
+
+    class_<maxiChorus>("maxiChorus")
+    .constructor<>()
+    .function("chorus", &maxiChorus::chorus)
+    ;
+
+    class_<maxiSVF>("maxiSVF")
+    .constructor<>()
+    .function("play", &maxiSVF::play)
+    .function("setCutoff", &maxiSVF::setCutoff)
+    .function("setResonance", &maxiSVF::setResonance)
+    ;
+
+    class_<maxiSample>("maxiSample")
+    .constructor<>()
+    .function("load", &maxiSample::load)
+    .function("trigger", &maxiSample::trigger)
+    .function("playOnce", select_overload<double(double)>(&maxiSample::playOnce))
+    .function("play", select_overload<double(double)>(&maxiSample::play))
+    ;
 
     class_<apProgXimateJS>("approgx")
     .constructor<>()
@@ -96,9 +132,6 @@ EMSCRIPTEN_BINDINGS(my_module) {
     .function("isEnabled", &apProgXimateJS::isEnabled)
     ;
     
-//    fdef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int argt[], unsigned int rType, unsigned int lim=9999999)
-//    void init(std::string fName, std::string fd, unsigned int numArgs, unsigned int argt[], unsigned int rType, unsigned int lim=9999999) {
-
 
     register_vector<float>("FloatVector");
     register_vector<unsigned int>("UnsignedIntVector");

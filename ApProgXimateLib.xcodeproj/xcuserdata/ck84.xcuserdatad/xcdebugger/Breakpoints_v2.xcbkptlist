@@ -15,7 +15,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "161"
             endingLineNumber = "161"
-            landmarkName = "apProgXimate::getFunctionNames(std::vector&lt;std::string&gt; &amp;names)"
+            landmarkName = "apProgXimate::getFirstDataType()"
             landmarkType = "5">
          </BreakpointContent>
       </BreakpointProxy>

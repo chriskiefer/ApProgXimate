@@ -114,7 +114,7 @@ protected:
     unsigned int getFirstDataType() override;
     unsigned int getNumDataTypes() override;
     void dataTypeToCode(unsigned int dataType, std::stringstream &code, float value) override;
-    void traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::stringstream &codeBody, int level=0);
+    void traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::stringstream &codeBody, std::stringstream &cleanupCode, int level=0);
 };
 
 

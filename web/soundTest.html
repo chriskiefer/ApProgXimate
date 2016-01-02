@@ -1,15 +1,18 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html><head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <!-- header('content-type: application/json; charset=utf-8');
+  header("access-control-allow-origin: *"); -->
   <title>
     ApProgXimate Programming
   </title>
 
+  <script src="apProgXimate.js"></script>
   <script src="jquery-2.1.4.min.js"></script>
   <script type="text/javascript" src="jquery.layout-1.4.1.js"></script>
   <link rel="stylesheet" type="text/css" href="layout-default-latest.css" />
   <script src="jquery-ui.min.js"></script>
-  <script src="apProgXimate.js"></script>
   <link href='jquery-ui.min.css' rel='stylesheet' type='text/css'>
   <script src="Recorderjs/dist/recorder.js"></script>
   <script src="jquery-popup-overlay/jquery.popupoverlay.js"></script>
@@ -115,6 +118,7 @@ var globalMemory = [];
 for (i=0; i < GLOBALMEMSIZE; i++) {
   globalMemory[i] = 0;
 };
+var snapShots = {};
 
 var recorder;
 function startRecording(button) {
@@ -223,12 +227,24 @@ function initAudio() {
 
 }
 
+function _dispose(x){
+  for(k in Object.keys(x)) {
+    if (typeof x[k].$$ == 'object') {
+      x[k].delete();
+    }
+  }
+}
+
+
 function generate() {
   appx.collectDataTypes();
   code = appx.genCode(gene, true);
   for(i=0; i < GLOBALMEMSIZE; i++) {
     globalMemory[i] = 0;
   }
+  if (typeof _cleanUp == 'function') {
+    _cleanUp();
+  };
   jQuery.globalEval(code);
   //console.log(code);
   editor.setValue(code);
@@ -316,6 +332,15 @@ function init() {
       return Math.tanh(j0);\n \
     }\n \
   }\n", 1, 99999);
+
+  appx.addFuncDef("samp", "\
+function samp() { \n\
+	this.dsp = new Module.maxiSample();  \n\
+	this.dsp.load('samples/distortedkick10.wav',0);\n\
+ 	this.play = function(j0) \n{ \
+ 		return this.dsp.play(1.0); \n\
+ 	} \n\
+ }",1,99999)
 
   // appx.addFuncDef("gwrite", "function gwrite() {\n \
   //    this.play = function(j0, j1) {\n \
@@ -545,10 +570,13 @@ $(document).ready(function(){
   //     editor.resize()
   //   }
   // })
-  $("#saveSnapButton").button()
+  $("#saveSnapshotFormButton").button()
   .click(function() {
-    console.log("saveSnap");
+    console.log($('#saveSnapshotForm #snapNickName').val());
     var newSnap = {};
+    newSnap.nickName = $('#saveSnapshotForm #snapNickName').val();
+    newSnap.title = $('#saveSnapshotForm #snapTitle').val()
+    newSnap.desc = $('#saveSnapshotForm #snapDesc').val()
     newSnap.geneSize = GENESIZE;
     newSnap.gene = new Array(GENESIZE);
     for(i=0; i < GENESIZE; i++) newSnap.gene[i] = gene.get(i);
@@ -562,58 +590,114 @@ $(document).ready(function(){
       newSnap.funcs[i] = appx.getCode(functionNames.get(i));
       newSnap.funcsEnabled[i] = appx.isEnabled(functionNames.get(i));
     }
+    snapShots[newSnap.title] = newSnap;
     localStorage.setItem('snapshot', JSON.stringify(newSnap));
+    localStorage.setItem('snapshots', JSON.stringify(snapShots));
     console.log(JSON.parse(localStorage.getItem('snapshot')));
+    console.log(snapShots);
+    $('#saveSnapPopup').popup('hide');
+  });
+  $("#saveSnapshotFormCancelButton").button()
+  .click(function() {
+    $('#saveSnapPopup').popup('hide');
+  });
+  $("#saveSnapButton").button()
+  .click(function() {
+    console.log("saveSnap");
+    $('#saveSnapPopup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
   });
   $("#loadSnapButton").button()
   .click(function() {
-    console.log("loadSnap");
-    var rows = $('.codeAccordion').find("span.accHeader");
-    console.log(rows.first().html());
-    rows.each(function(i) {
-      console.log($(this).html());
-      appx.removeFDef($(this).html());
-    })
-    rows = $('.codeAccordion').children();
-    $.each(rows, function(idx,val){
-      console.log(val);
-      val.remove();
-    });
-    var snap = JSON.parse(localStorage.getItem('snapshot'));
-    console.log(snap);
-    for(i=0; i < snap.funcs.length; i++) {
-//      console.log(snap.funcs[i]);
-      eval("var checker = " + snap.funcs[i]);
-      if(checker.length==0) {
-        console.log(checker.name);
-        var testInst = new checker();
-        if (testInst.play != undefined) {
-          console.log("function check passed");
-          var numArgs = testInst.play.length;
-          appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
-          appx.enableFDef(checker.name, snap.funcsEnabled[i]);
-          addCodePanel(checker.name, snap.funcsEnabled[i]);
-        }else{
-          console.log("function check failed");
-        }
-      }else{
-        console.log("function check failed");
-      }
-    };
-    $('.codeAccordion').accordion("refresh");
+    $('#loadSnapPopup').empty().append('<div>Load Scene<div style="float:right;">   <button class="my_popup_close" >Close</button></div></div>');
+    snapShots = JSON.parse(localStorage.getItem('snapshots'));
+    console.log(snapShots);
+    buttonIdx = 0;
+    for(e in snapShots) {
+      console.log(snapShots[e]);
+      buttonID = "loadSnapButton" + buttonIdx;
+      $('#loadSnapPopup').append(' \
+       <div class="snapDesc"> \
+        <div><h3>' + snapShots[e].title + '</h3> by <span>' + snapShots[e].nickName + '</span></div> \
+        <div>' + snapShots[e].desc + '</div> \
+        <div><button data-name="' + snapShots[e].title + '" id="' + buttonID+ '">load</button></div> \
+      </div> \
+      ');
+      //TODO: use some sort of ID?
+      buttonIdx++;
+      $("#" + buttonID).button()
+      .click(function() {
+        console.log("load");
+        // console.log($(this).data().name);
+        // console.log(snapShots[$(this).data().name]);
+        var rows = $('.codeAccordion').find("span.accHeader");
+        console.log(rows.first().html());
+        rows.each(function(i) {
+          console.log($(this).html());
+          appx.removeFDef($(this).html());
+        })
+        rows = $('.codeAccordion').children();
+        $.each(rows, function(idx,val){
+          console.log(val);
+          val.remove();
+        });
+        var snap = snapShots[$(this).data().name]; //JSON.parse(localStorage.getItem('snapshot'));
+        console.log(snap);
+        for(i=0; i < snap.funcs.length; i++) {
+    //      console.log(snap.funcs[i]);
+          eval("var checker = " + snap.funcs[i]);
+          if(checker.length==0) {
+            console.log(checker.name);
+            var testInst = new checker();
+            if (testInst.play != undefined) {
+              console.log("function check passed");
+              var numArgs = testInst.play.length;
+              appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
+              appx.enableFDef(checker.name, snap.funcsEnabled[i]);
+              addCodePanel(checker.name, snap.funcsEnabled[i]);
+            }else{
+              console.log("function check failed");
+            }
+          }else{
+            console.log("function check failed");
+          }
+        };
+        $('.codeAccordion').accordion("refresh");
 
-    gene.resize(snap.geneSize, 0);
-    for(i=0; i < snap.geneSize; i++) {
-      gene.set(i, snap.gene[i]);
+        gene.resize(snap.geneSize, 0);
+        for(i=0; i < snap.geneSize; i++) {
+          gene.set(i, snap.gene[i]);
+        }
+        generate();
+        updateCanvas();
+        $('#loadSnapPopup').popup('hide');
+      });
     }
-    generate();
-    updateCanvas();
+    $("#closeLoadSnapPopupButton").button()
+    .click(function() {
+      $('#loadSnapPopup').popup('hide');
+    });
+    $('#loadSnapPopup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
   });
 
   $("#helpButton").button()
   .click(function() {
     console.log("test");
-    $('#my_popup').popup('show');
+    $('#my_popup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
   });
 
   $("#randButton").button()
@@ -851,5 +935,37 @@ $(document).ready(function(){
    <button class="my_popup_close" >Close</button>
 
  </div>
+
+ <div id="saveSnapPopup" style="background:white; padding:10px; border-box:10px; max-width:30em; visibility:hidden;">
+
+    <form id="saveSnapshotForm" action="#">
+        <div>
+            <h3>Save Scene</h3>
+            <div>
+              <label for="snapNickName">Nickname</label>
+              <input id="snapNickName" name="snapNickName" type="text" style="float:right">
+            </div>
+            <div>
+              <label for="snapTitle">Title</label>
+              <input id="snapTitle" name="snapTitle" type="text" style="float:right">
+            </div>
+            <div>
+              <label for="snapDesc">Description</label>
+              <textarea id="snapDesc" name="snapDesc" rows="3" style="float:right"></textarea>
+            </div>
+        </div>
+    </form>
+    <!-- Add an optional button to close the popup -->
+    <div style="padding:5px; marginTop:">
+      <button id="saveSnapshotFormCancelButton" class="my_popup_close" >Cancel</button>
+      <button id="saveSnapshotFormButton">Save</button>
+    </div>
+
+</div>
+<div id="loadSnapPopup" style="background:white; padding:10px; border-box:10px; max-width:30em; max-height:80%; overflow-y:scroll;visibility:hidden;">
+  <div>Load Scene
+    <div style="float:right;"><button idcloseLoadSnapPopupButton="closeLoadSnapPopupButton">close</button></div>
+  </div>
+</div>
 
 </body></html>

@@ -1,0 +1,987 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0036)http://localhost:8000/soundTest.html -->
+<html style="overflow: hidden; height: 100%; border: none; padding: 0px; margin: 0px;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <!-- header('content-type: application/json; charset=utf-8');
+  header("access-control-allow-origin: *"); -->
+  <title>
+    ApProgXimate Programming
+  </title>
+
+  <script src="./ApProgXimate Programming_files/apProgXimate.js"></script>
+  <script src="./ApProgXimate Programming_files/jquery-2.1.4.min.js"></script>
+  <script type="text/javascript" src="./ApProgXimate Programming_files/jquery.layout-1.4.1.js"></script>
+  <link rel="stylesheet" type="text/css" href="./ApProgXimate Programming_files/layout-default-latest.css">
+  <script src="./ApProgXimate Programming_files/jquery-ui.min.js"></script>
+  <link href="./ApProgXimate Programming_files/jquery-ui.min.css" rel="stylesheet" type="text/css">
+  <script src="./ApProgXimate Programming_files/recorder.js"></script>
+  <script src="./ApProgXimate Programming_files/jquery.popupoverlay.js"></script>
+  <style>
+  #eq > span {
+    height:150px; float:left; margin:5px
+  }
+  /*#code  {
+  height:150px; float:left; margin:5px
+  }*/
+  </style>
+  <style type="text/css" media="screen">
+
+  .ace_editor {
+    position: relative !important;
+    border: 1px solid lightgray;
+    margin: auto;
+    height: 100%;
+    width: 100%;
+  }
+
+  .editorPanel {
+    background: white;
+    padding: 0px;
+
+  }
+
+  .ui-accordion .ui-accordion-content {padding:0px }
+
+  #edit8 {
+    position: relative !important;
+    border: 1px solid lightgray;
+    margin: auto;
+    height: 100%;
+    width: 100%;
+  }
+
+  .ace_editor.fullScreen {
+    height: auto;
+    width: auto;
+    border: 0;
+    margin: 0;
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+  }
+
+  #topButtonBar {
+    float:right;
+  }
+
+  .fullScreen {
+    overflow: hidden
+  }
+
+  .onOffRadios {
+    float: right;
+    width: auto;
+    font-size: 50%;
+  }
+
+  .ui-widget {
+    font-family: Verdana,Arial,sans-serif;
+    font-size: 0.8em;
+    font-weight: normal;
+  }
+  /*.scrollmargin {
+  height: 500px;
+  text-align: center;
+  }*/
+  <style type='text/css'>
+  ul { list-style: none; }
+  #recordingslist audio { display: block; margin-bottom: 10px; }
+  </style>
+
+
+<!-- Our javascript code -->
+<script type="text/javascript">
+//Module.apProgXimateJS.genCode([1,2,3]);
+var appx = new Module.approgx();
+
+// Temporary patch until all browsers support unprefixed context.
+AudioContext = AudioContext || webkitAudioContext;
+
+// init() once the page has finished loading.
+//window.onload = init;
+
+var context;
+var source = 0;
+var jsProcessor = 0;
+var preGain;
+var limiter;
+var analyser;
+var analyserView1;
+var gene;
+var GENESIZE = 50;
+var editor;
+var GLOBALMEMSIZE=10;
+var globalMemory = [];
+for (i=0; i < GLOBALMEMSIZE; i++) {
+  globalMemory[i] = 0;
+};
+var snapShots = {};
+
+var recorder;
+function startRecording(button) {
+  recorder && recorder.record();
+  button.disabled = true;
+  button.nextElementSibling.disabled = false;
+}
+function stopRecording(button) {
+  recorder && recorder.stop();
+  button.disabled = true;
+  button.previousElementSibling.disabled = false;
+
+  // create WAV download link using audio data blob
+  createDownloadLink();
+  recorder.clear();
+}
+function createDownloadLink() {
+  recorder && recorder.exportWAV(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var li = document.createElement('li');
+    var au = document.createElement('audio');
+    var hf = document.createElement('a');
+
+    au.controls = true;
+    au.src = url;
+    hf.href = url;
+    hf.download = new Date().toISOString() + '.wav';
+    hf.innerHTML = hf.download;
+    li.appendChild(au);
+    li.appendChild(hf);
+    recordingslist.appendChild(li);
+  });
+}
+
+function process(event) {
+  //Get left/right input and output arrays
+  inputArrayL = event.inputBuffer.getChannelData(0);
+  inputArrayR = event.inputBuffer.getChannelData(1);
+  outputArrayL = event.outputBuffer.getChannelData(0);
+  outputArrayR = event.outputBuffer.getChannelData(1);
+
+  n = inputArrayL.length;
+
+  for (i = 0; i < n; ++i) {
+    x = approxRenderer();
+    outputArrayL[i] = x;
+    outputArrayR[i] = x;
+  }
+}
+
+
+// if ( !window.requestAnimationFrame ) {
+
+//         window.requestAnimationFrame = ( function() {
+
+//                 return window.webkitRequestAnimationFrame ||
+//                 window.mozRequestAnimationFrame || // comment out if FF4 is slow (it caps framerate at ~30fps: https://bugzilla.mozilla.org/show_bug.cgi?id=630127)
+//                 window.oRequestAnimationFrame ||
+//                 window.msRequestAnimationFrame ||
+//                 function( /* function FrameRequestCallback */ callback, /* DOMElement Element */ element ) {
+
+//                         window.setTimeout( callback, 1000 / 60 );
+
+//                 };
+
+//         } )();
+
+// }
+
+function randomiseGene() {
+  for(i=0; i < GENESIZE; i++) {
+    gene.set(i,Math.random());
+  }
+}
+
+
+function initAudio() {
+
+  context = new AudioContext();
+  source = context.createBufferSource();
+
+  // This AudioNode will do the amplitude modulation effect directly in JavaScript
+  jsProcessor = context.createScriptProcessor(1024);
+  jsProcessor.onaudioprocess = process;
+
+  analyser = context.createAnalyser();
+  analyser.fftSize = 2048;
+
+  preGain = context.createGain();
+  preGain.value = 0.1;
+  limiter = context.createDynamicsCompressor();
+  limiter.threshold.value = -0.1;
+  limiter.knee.value = 0.0;
+  limiter.ratio.value = 2.0;
+  limiter.attack.value = 0.005;
+  limiter.release.value = 0.05;
+
+
+  // Connect the processing graph: source -> jsProcessor -> analyser -> destination
+  source.connect(jsProcessor);
+  jsProcessor.connect(preGain);
+  preGain.connect(limiter);
+  limiter.connect(analyser);
+  analyser.connect(context.destination);
+  recorder = new Recorder(preGain);
+
+}
+
+function generate() {
+  appx.collectDataTypes();
+  code = appx.genCode(gene, true);
+  for(i=0; i < GLOBALMEMSIZE; i++) {
+    globalMemory[i] = 0;
+  }
+  jQuery.globalEval(code);
+  //console.log(code);
+  editor.setValue(code);
+  editor.clearSelection();
+}
+
+function init() {
+  appx.addFuncDef("add", "function add() {\n \
+    this.play = function(j1, j2) {\n \
+      return j1 + j2;\n \
+    }\n \
+  }\n", 2, 99999);
+  // appx.addFuncDef("mix", "function mix() {\n \
+  //    this.play = function(j1, j2, j3) {\n \
+  //        return (j1 * j3) + (j2 * (1 - j3));\n \
+  //    }\n \
+  // }\n", 3, 99999);
+  appx.addFuncDef("mul", "function mul() {\n \
+    this.play = function(j1, j2) {\n \
+      return j1 * j2;\n \
+    }\n \
+  }\n", 2, 99999);
+
+  appx.addFuncDef("saw", "function saw() {\n \
+    this.osc = new Module.maxiOsc();\n \
+    this.play = function(j0) {\n \
+      return this.osc.sawn(Module.maxiMap.linexp(j0,-1,1,20,20000));\n \
+    }\n \
+  }\n", 1, 99999);
+
+  appx.addFuncDef("lfsaw", "function lfsaw() {\n \
+    this.osc = new Module.maxiOsc();\n \
+    this.play = function(j0) {\n \
+      return this.osc.saw(Module.maxiMap.linexp(j0,-1,1,0.01,15));\n \
+    }\n \
+  }\n", 1, 99999);
+
+  appx.addFuncDef("square", "function square() {\n \
+    this.osc = new Module.maxiOsc();\n \
+    this.play = function(j0) {\n \
+      return this.osc.square(Module.maxiMap.linexp(j0,-1,1,20,20000));\n \
+    }\n \
+  }\n", 1, 99999);
+
+  // appx.addFuncDef("lfsquare", "function lfsquare() {\n \
+  //   this.osc = new Module.maxiOsc();\n \
+  //   this.play = function(j0) {\n \
+  //     return this.osc.square(Module.maxiMap.linexp(j0,-1,1,0.01,15));\n \
+  //   }\n \
+  // }\n", 1, 99999);
+  //
+  // appx.addFuncDef("lpf", "function lpf() {\n \
+  //   this.filter = new Module.maxiFilter();\n \
+  //   this.play = function(j0,j1) {\n \
+  //     return this.filter.lopass(j0, (j1 + 1) / 2);\n \
+  //   }\n \
+  // }\n", 2, 99999);
+  // appx.addFuncDef("lpfz", "function lpfz() {\n \
+  //    this.filter = new Module.maxiFilter();\n \
+  //    this.play = function(j0,j1,j2) {\n \
+  //        return this.filter.lores(j0, Module.maxiMap.linexp(j1,-1,1,20,10000), Module.maxiMap.linlin(j2, -1, 1, 1, 5));\n \
+  //    }\n \
+  // }\n", 3, 99999);
+  //
+  // appx.addFuncDef("hpf", "function hpf() {\n \
+  //    this.filter = new Module.maxiFilter();\n \
+  //    this.play = function(j0,j1) {\n \
+  //        return this.filter.hipass(j0, (j1 + 1) / 2);\n \
+  //    }\n \
+  // }\n", 2, 99999);
+  //
+  appx.addFuncDef("gate", "function gate() {\n \
+    this.filter = new Module.maxiFilter();\n \
+    this.ampctl = 0; \
+    this.play = function(j0,j1, j2) {\n \
+      var w; \
+      w = this.filter.lopass(j1 > j2 ? 1 : 0 , 0.5); \
+      return w * j0;\n \
+    }\n \
+  }\n", 3, 99999);
+
+
+  appx.addFuncDef("tanh_", "function tanh_() {\n \
+    this.play = function(j0) {\n \
+      return Math.tanh(j0);\n \
+    }\n \
+  }\n", 1, 99999);
+
+  appx.addFuncDef("samp", "\
+function samp() { \
+	this.dsp = new Module.maxiSample();  \
+	this.dsp.load('samples/distortedkick10.wav',0);\
+ 	this.play = function(j0) { \
+ 		return this.dsp.play(1.0); \
+ 	} \
+ }",1,99999)
+
+  // appx.addFuncDef("gwrite", "function gwrite() {\n \
+  //    this.play = function(j0, j1) {\n \
+  //        var index; \
+  //        index = Math.floor(j0 * 3);\
+  //        globalMemory[index] = Math.tanh(globalMemory[index] + j1); \
+  //        return j0;\n \
+  //    }\n \
+  // }\n", 2, 99999);
+  //
+  // appx.addFuncDef("gread", "function gread() {\n \
+  //    this.play = function(j0) {\n \
+  //        var index; \
+  //        index = Math.floor(j0 * 3);\
+  //        return globalMemory[index];\n \
+  //    }\n \
+  // }\n", 1, 99999);
+  appx.addFuncDef("gwr1", "function gwr1() {\n \
+    this.play = function(j0) {\n \
+      globalMemory[0] = Math.tanh(globalMemory[0] + (j0)); \
+      return j0;\n \
+    }\n \
+  }\n", 1, 99999);
+
+  appx.addFuncDef("gr1", "function gr1() {\n \
+    this.play = function(j0) {\n \
+      return globalMemory[0] * j0;\n \
+    }\n \
+  }\n", 1, 99999);
+
+  // appx.addFuncDef("seq", "function seq() {\n \
+  //   this.vals = [1,9,4,-6,3]; \
+  //   this.idx = 0; \
+  //   this.last =0; \
+  //    this.play = function(j0) {\n \
+  //        if (this.last < 0 && j0 >= 0) {\
+  //          this.idx++; \
+  //          if (this.idx == this.vals.length) this.idx = 0; \
+  //        } \
+  //        this.last = j0; \
+  //        return this.vals[this.idx] / 10.0;\n \
+  //    }\n \
+  // }\n", 1, 99999);
+
+
+  gene = new Module.FloatVector();
+
+  for(i=0; i < GENESIZE; i++) {
+    gene.push_back(Math.random());
+  }
+
+  // $("#code").html(code.replace("\\n", "<br>"));
+
+  //analyserView1 = new AnalyserView("view1");
+  //analyserView1.initByteBuffer();
+  // $(function() {
+  //   for(i=0; i < GENESIZE; i++) {
+  //     $("<span />", {})
+  //     .appendTo("#eq");
+  //   }
+  //   idx = 0;
+  //   $( "#eq > span" ).each(function() {
+  //     $( this ).empty().slider({
+  //       min:0,
+  //       max:1,
+  //       value: gene.get(idx),
+  //       range: "min",
+  //       animate: true,
+  //       step:0.0001,
+  //       orientation: "vertical",
+  //       // change: function(event, ui) {
+  //       //   console.log(ui);
+  //       // }
+  //     });
+  //     $( this ).slider().on("slide", {idx:idx}, function(event, ui) {
+  //       console.log(event.data);
+  //       gene.set(event.data.idx, ui.value);
+  //       // code = appx.genCode(gene, true);
+  //       // console.log(code);
+  //       // jQuery.globalEval(code);
+  //       // //$("#code").html(code.replace("\\n", "<br>"));
+  //       // editor.setValue(code);
+  //       // editor.clearSelection();
+  //       generate();
+  //     });
+  //     idx++;
+  //   });
+  // });
+
+}
+
+
+// navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
+//
+// navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
+// console.log('No live audio input: ' + e);
+// });
+
+</script>
+
+<!-- load ace -->
+<script src="./ApProgXimate Programming_files/ace.js"></script><style id="ace_editor.css">.ace_editor {position: relative;overflow: hidden;font: 12px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;direction: ltr;}.ace_scroller {position: absolute;overflow: hidden;top: 0;bottom: 0;background-color: inherit;-ms-user-select: none;-moz-user-select: none;-webkit-user-select: none;user-select: none;cursor: text;}.ace_content {position: absolute;-moz-box-sizing: border-box;-webkit-box-sizing: border-box;box-sizing: border-box;min-width: 100%;}.ace_dragging .ace_scroller:before{position: absolute;top: 0;left: 0;right: 0;bottom: 0;content: '';background: rgba(250, 250, 250, 0.01);z-index: 1000;}.ace_dragging.ace_dark .ace_scroller:before{background: rgba(0, 0, 0, 0.01);}.ace_selecting, .ace_selecting * {cursor: text !important;}.ace_gutter {position: absolute;overflow : hidden;width: auto;top: 0;bottom: 0;left: 0;cursor: default;z-index: 4;-ms-user-select: none;-moz-user-select: none;-webkit-user-select: none;user-select: none;}.ace_gutter-active-line {position: absolute;left: 0;right: 0;}.ace_scroller.ace_scroll-left {box-shadow: 17px 0 16px -16px rgba(0, 0, 0, 0.4) inset;}.ace_gutter-cell {padding-left: 19px;padding-right: 6px;background-repeat: no-repeat;}.ace_gutter-cell.ace_error {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAABOFBMVEX/////////QRswFAb/Ui4wFAYwFAYwFAaWGAfDRymzOSH/PxswFAb/SiUwFAYwFAbUPRvjQiDllog5HhHdRybsTi3/Tyv9Tir+Syj/UC3////XurebMBIwFAb/RSHbPx/gUzfdwL3kzMivKBAwFAbbvbnhPx66NhowFAYwFAaZJg8wFAaxKBDZurf/RB6mMxb/SCMwFAYwFAbxQB3+RB4wFAb/Qhy4Oh+4QifbNRcwFAYwFAYwFAb/QRzdNhgwFAYwFAbav7v/Uy7oaE68MBK5LxLewr/r2NXewLswFAaxJw4wFAbkPRy2PyYwFAaxKhLm1tMwFAazPiQwFAaUGAb/QBrfOx3bvrv/VC/maE4wFAbRPBq6MRO8Qynew8Dp2tjfwb0wFAbx6eju5+by6uns4uH9/f36+vr/GkHjAAAAYnRSTlMAGt+64rnWu/bo8eAA4InH3+DwoN7j4eLi4xP99Nfg4+b+/u9B/eDs1MD1mO7+4PHg2MXa347g7vDizMLN4eG+Pv7i5evs/v79yu7S3/DV7/498Yv24eH+4ufQ3Ozu/v7+y13sRqwAAADLSURBVHjaZc/XDsFgGIBhtDrshlitmk2IrbHFqL2pvXf/+78DPokj7+Fz9qpU/9UXJIlhmPaTaQ6QPaz0mm+5gwkgovcV6GZzd5JtCQwgsxoHOvJO15kleRLAnMgHFIESUEPmawB9ngmelTtipwwfASilxOLyiV5UVUyVAfbG0cCPHig+GBkzAENHS0AstVF6bacZIOzgLmxsHbt2OecNgJC83JERmePUYq8ARGkJx6XtFsdddBQgZE2nPR6CICZhawjA4Fb/chv+399kfR+MMMDGOQAAAABJRU5ErkJggg==");background-repeat: no-repeat;background-position: 2px center;}.ace_gutter-cell.ace_warning {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAmVBMVEX///8AAAD///8AAAAAAABPSzb/5sAAAAB/blH/73z/ulkAAAAAAAD85pkAAAAAAAACAgP/vGz/rkDerGbGrV7/pkQICAf////e0IsAAAD/oED/qTvhrnUAAAD/yHD/njcAAADuv2r/nz//oTj/p064oGf/zHAAAAA9Nir/tFIAAAD/tlTiuWf/tkIAAACynXEAAAAAAAAtIRW7zBpBAAAAM3RSTlMAABR1m7RXO8Ln31Z36zT+neXe5OzooRDfn+TZ4p3h2hTf4t3k3ucyrN1K5+Xaks52Sfs9CXgrAAAAjklEQVR42o3PbQ+CIBQFYEwboPhSYgoYunIqqLn6/z8uYdH8Vmdnu9vz4WwXgN/xTPRD2+sgOcZjsge/whXZgUaYYvT8QnuJaUrjrHUQreGczuEafQCO/SJTufTbroWsPgsllVhq3wJEk2jUSzX3CUEDJC84707djRc5MTAQxoLgupWRwW6UB5fS++NV8AbOZgnsC7BpEAAAAABJRU5ErkJggg==");background-position: 2px center;}.ace_gutter-cell.ace_info {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAJ0Uk5TAAB2k804AAAAPklEQVQY02NgIB68QuO3tiLznjAwpKTgNyDbMegwisCHZUETUZV0ZqOquBpXj2rtnpSJT1AEnnRmL2OgGgAAIKkRQap2htgAAAAASUVORK5CYII=");background-position: 2px center;}.ace_dark .ace_gutter-cell.ace_info {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAJFBMVEUAAAChoaGAgIAqKiq+vr6tra1ZWVmUlJSbm5s8PDxubm56enrdgzg3AAAAAXRSTlMAQObYZgAAAClJREFUeNpjYMAPdsMYHegyJZFQBlsUlMFVCWUYKkAZMxZAGdxlDMQBAG+TBP4B6RyJAAAAAElFTkSuQmCC");}.ace_scrollbar {position: absolute;right: 0;bottom: 0;z-index: 6;}.ace_scrollbar-inner {position: absolute;cursor: text;left: 0;top: 0;}.ace_scrollbar-v{overflow-x: hidden;overflow-y: scroll;top: 0;}.ace_scrollbar-h {overflow-x: scroll;overflow-y: hidden;left: 0;}.ace_print-margin {position: absolute;height: 100%;}.ace_text-input {position: absolute;z-index: 0;width: 0.5em;height: 1em;opacity: 0;background: transparent;-moz-appearance: none;appearance: none;border: none;resize: none;outline: none;overflow: hidden;font: inherit;padding: 0 1px;margin: 0 -1px;text-indent: -1em;-ms-user-select: text;-moz-user-select: text;-webkit-user-select: text;user-select: text;white-space: pre!important;}.ace_text-input.ace_composition {background: inherit;color: inherit;z-index: 1000;opacity: 1;text-indent: 0;}.ace_layer {z-index: 1;position: absolute;overflow: hidden;word-wrap: normal;white-space: pre;height: 100%;width: 100%;-moz-box-sizing: border-box;-webkit-box-sizing: border-box;box-sizing: border-box;pointer-events: none;}.ace_gutter-layer {position: relative;width: auto;text-align: right;pointer-events: auto;}.ace_text-layer {font: inherit !important;}.ace_cjk {display: inline-block;text-align: center;}.ace_cursor-layer {z-index: 4;}.ace_cursor {z-index: 4;position: absolute;-moz-box-sizing: border-box;-webkit-box-sizing: border-box;box-sizing: border-box;border-left: 2px solid;transform: translatez(0);}.ace_slim-cursors .ace_cursor {border-left-width: 1px;}.ace_overwrite-cursors .ace_cursor {border-left-width: 0;border-bottom: 1px solid;}.ace_hidden-cursors .ace_cursor {opacity: 0.2;}.ace_smooth-blinking .ace_cursor {-webkit-transition: opacity 0.18s;transition: opacity 0.18s;}.ace_editor.ace_multiselect .ace_cursor {border-left-width: 1px;}.ace_marker-layer .ace_step, .ace_marker-layer .ace_stack {position: absolute;z-index: 3;}.ace_marker-layer .ace_selection {position: absolute;z-index: 5;}.ace_marker-layer .ace_bracket {position: absolute;z-index: 6;}.ace_marker-layer .ace_active-line {position: absolute;z-index: 2;}.ace_marker-layer .ace_selected-word {position: absolute;z-index: 4;-moz-box-sizing: border-box;-webkit-box-sizing: border-box;box-sizing: border-box;}.ace_line .ace_fold {-moz-box-sizing: border-box;-webkit-box-sizing: border-box;box-sizing: border-box;display: inline-block;height: 11px;margin-top: -2px;vertical-align: middle;background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAJCAYAAADU6McMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAJpJREFUeNpi/P//PwOlgAXGYGRklAVSokD8GmjwY1wasKljQpYACtpCFeADcHVQfQyMQAwzwAZI3wJKvCLkfKBaMSClBlR7BOQikCFGQEErIH0VqkabiGCAqwUadAzZJRxQr/0gwiXIal8zQQPnNVTgJ1TdawL0T5gBIP1MUJNhBv2HKoQHHjqNrA4WO4zY0glyNKLT2KIfIMAAQsdgGiXvgnYAAAAASUVORK5CYII="),url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAA3CAYAAADNNiA5AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAACJJREFUeNpi+P//fxgTAwPDBxDxD078RSX+YeEyDFMCIMAAI3INmXiwf2YAAAAASUVORK5CYII=");background-repeat: no-repeat, repeat-x;background-position: center center, top left;color: transparent;border: 1px solid black;border-radius: 2px;cursor: pointer;pointer-events: auto;}.ace_dark .ace_fold {}.ace_fold:hover{background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAAJCAYAAADU6McMAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAJpJREFUeNpi/P//PwOlgAXGYGRklAVSokD8GmjwY1wasKljQpYACtpCFeADcHVQfQyMQAwzwAZI3wJKvCLkfKBaMSClBlR7BOQikCFGQEErIH0VqkabiGCAqwUadAzZJRxQr/0gwiXIal8zQQPnNVTgJ1TdawL0T5gBIP1MUJNhBv2HKoQHHjqNrA4WO4zY0glyNKLT2KIfIMAAQsdgGiXvgnYAAAAASUVORK5CYII="),url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAA3CAYAAADNNiA5AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAACBJREFUeNpi+P//fz4TAwPDZxDxD5X4i5fLMEwJgAADAEPVDbjNw87ZAAAAAElFTkSuQmCC");}.ace_tooltip {background-color: #FFF;background-image: -webkit-linear-gradient(top, transparent, rgba(0, 0, 0, 0.1));background-image: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));border: 1px solid gray;border-radius: 1px;box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);color: black;max-width: 100%;padding: 3px 4px;position: fixed;z-index: 999999;-moz-box-sizing: border-box;-webkit-box-sizing: border-box;box-sizing: border-box;cursor: default;white-space: pre;word-wrap: break-word;line-height: normal;font-style: normal;font-weight: normal;letter-spacing: normal;pointer-events: none;}.ace_folding-enabled > .ace_gutter-cell {padding-right: 13px;}.ace_fold-widget {-moz-box-sizing: border-box;-webkit-box-sizing: border-box;box-sizing: border-box;margin: 0 -12px 0 1px;display: none;width: 11px;vertical-align: top;background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAANElEQVR42mWKsQ0AMAzC8ixLlrzQjzmBiEjp0A6WwBCSPgKAXoLkqSot7nN3yMwR7pZ32NzpKkVoDBUxKAAAAABJRU5ErkJggg==");background-repeat: no-repeat;background-position: center;border-radius: 3px;border: 1px solid transparent;cursor: pointer;}.ace_folding-enabled .ace_fold-widget {display: inline-block;   }.ace_fold-widget.ace_end {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAANElEQVR42m3HwQkAMAhD0YzsRchFKI7sAikeWkrxwScEB0nh5e7KTPWimZki4tYfVbX+MNl4pyZXejUO1QAAAABJRU5ErkJggg==");}.ace_fold-widget.ace_closed {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAAGCAYAAAAG5SQMAAAAOUlEQVR42jXKwQkAMAgDwKwqKD4EwQ26sSOkVWjgIIHAzPiCgaqiqnJHZnKICBERHN194O5b9vbLuAVRL+l0YWnZAAAAAElFTkSuQmCCXA==");}.ace_fold-widget:hover {border: 1px solid rgba(0, 0, 0, 0.3);background-color: rgba(255, 255, 255, 0.2);box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);}.ace_fold-widget:active {border: 1px solid rgba(0, 0, 0, 0.4);background-color: rgba(0, 0, 0, 0.05);box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);}.ace_dark .ace_fold-widget {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHklEQVQIW2P4//8/AzoGEQ7oGCaLLAhWiSwB146BAQCSTPYocqT0AAAAAElFTkSuQmCC");}.ace_dark .ace_fold-widget.ace_end {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAH0lEQVQIW2P4//8/AxQ7wNjIAjDMgC4AxjCVKBirIAAF0kz2rlhxpAAAAABJRU5ErkJggg==");}.ace_dark .ace_fold-widget.ace_closed {background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAAFCAYAAACAcVaiAAAAHElEQVQIW2P4//+/AxAzgDADlOOAznHAKgPWAwARji8UIDTfQQAAAABJRU5ErkJggg==");}.ace_dark .ace_fold-widget:hover {box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);background-color: rgba(255, 255, 255, 0.1);}.ace_dark .ace_fold-widget:active {box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);}.ace_fold-widget.ace_invalid {background-color: #FFB4B4;border-color: #DE5555;}.ace_fade-fold-widgets .ace_fold-widget {-webkit-transition: opacity 0.4s ease 0.05s;transition: opacity 0.4s ease 0.05s;opacity: 0;}.ace_fade-fold-widgets:hover .ace_fold-widget {-webkit-transition: opacity 0.05s ease 0.05s;transition: opacity 0.05s ease 0.05s;opacity:1;}.ace_underline {text-decoration: underline;}.ace_bold {font-weight: bold;}.ace_nobold .ace_bold {font-weight: normal;}.ace_italic {font-style: italic;}.ace_error-marker {background-color: rgba(255, 0, 0,0.2);position: absolute;z-index: 9;}.ace_highlight-marker {background-color: rgba(255, 255, 0,0.2);position: absolute;z-index: 8;}.ace_br1 {border-top-left-radius    : 3px;}.ace_br2 {border-top-right-radius   : 3px;}.ace_br3 {border-top-left-radius    : 3px; border-top-right-radius:    3px;}.ace_br4 {border-bottom-right-radius: 3px;}.ace_br5 {border-top-left-radius    : 3px; border-bottom-right-radius: 3px;}.ace_br6 {border-top-right-radius   : 3px; border-bottom-right-radius: 3px;}.ace_br7 {border-top-left-radius    : 3px; border-top-right-radius:    3px; border-bottom-right-radius: 3px;}.ace_br8 {border-bottom-left-radius : 3px;}.ace_br9 {border-top-left-radius    : 3px; border-bottom-left-radius:  3px;}.ace_br10{border-top-right-radius   : 3px; border-bottom-left-radius:  3px;}.ace_br11{border-top-left-radius    : 3px; border-top-right-radius:    3px; border-bottom-left-radius:  3px;}.ace_br12{border-bottom-right-radius: 3px; border-bottom-left-radius:  3px;}.ace_br13{border-top-left-radius    : 3px; border-bottom-right-radius: 3px; border-bottom-left-radius:  3px;}.ace_br14{border-top-right-radius   : 3px; border-bottom-right-radius: 3px; border-bottom-left-radius:  3px;}.ace_br15{border-top-left-radius    : 3px; border-top-right-radius:    3px; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px;}
+/*# sourceURL=ace/css/ace_editor.css */</style><style id="ace-tm">.ace-tm .ace_gutter {background: #f0f0f0;color: #333;}.ace-tm .ace_print-margin {width: 1px;background: #e8e8e8;}.ace-tm .ace_fold {background-color: #6B72E6;}.ace-tm {background-color: #FFFFFF;color: black;}.ace-tm .ace_cursor {color: black;}.ace-tm .ace_invisible {color: rgb(191, 191, 191);}.ace-tm .ace_storage,.ace-tm .ace_keyword {color: blue;}.ace-tm .ace_constant {color: rgb(197, 6, 11);}.ace-tm .ace_constant.ace_buildin {color: rgb(88, 72, 246);}.ace-tm .ace_constant.ace_language {color: rgb(88, 92, 246);}.ace-tm .ace_constant.ace_library {color: rgb(6, 150, 14);}.ace-tm .ace_invalid {background-color: rgba(255, 0, 0, 0.1);color: red;}.ace-tm .ace_support.ace_function {color: rgb(60, 76, 114);}.ace-tm .ace_support.ace_constant {color: rgb(6, 150, 14);}.ace-tm .ace_support.ace_type,.ace-tm .ace_support.ace_class {color: rgb(109, 121, 222);}.ace-tm .ace_keyword.ace_operator {color: rgb(104, 118, 135);}.ace-tm .ace_string {color: rgb(3, 106, 7);}.ace-tm .ace_comment {color: rgb(76, 136, 107);}.ace-tm .ace_comment.ace_doc {color: rgb(0, 102, 255);}.ace-tm .ace_comment.ace_doc.ace_tag {color: rgb(128, 159, 191);}.ace-tm .ace_constant.ace_numeric {color: rgb(0, 0, 205);}.ace-tm .ace_variable {color: rgb(49, 132, 149);}.ace-tm .ace_xml-pe {color: rgb(104, 104, 91);}.ace-tm .ace_entity.ace_name.ace_function {color: #0000A2;}.ace-tm .ace_heading {color: rgb(12, 7, 255);}.ace-tm .ace_list {color:rgb(185, 6, 144);}.ace-tm .ace_meta.ace_tag {color:rgb(0, 22, 142);}.ace-tm .ace_string.ace_regex {color: rgb(255, 0, 0)}.ace-tm .ace_marker-layer .ace_selection {background: rgb(181, 213, 255);}.ace-tm.ace_multiselect .ace_selection.ace_start {box-shadow: 0 0 3px 0px white;}.ace-tm .ace_marker-layer .ace_step {background: rgb(252, 255, 0);}.ace-tm .ace_marker-layer .ace_stack {background: rgb(164, 229, 101);}.ace-tm .ace_marker-layer .ace_bracket {margin: -1px 0 0 -1px;border: 1px solid rgb(192, 192, 192);}.ace-tm .ace_marker-layer .ace_active-line {background: rgba(0, 0, 0, 0.07);}.ace-tm .ace_gutter-active-line {background-color : #dcdcdc;}.ace-tm .ace_marker-layer .ace_selected-word {background: rgb(250, 250, 255);border: 1px solid rgb(200, 200, 250);}.ace-tm .ace_indent-guide {background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==") right repeat-y;}
+/*# sourceURL=ace/css/ace-tm */</style><style>    .error_widget_wrapper {        background: inherit;        color: inherit;        border:none    }    .error_widget {        border-top: solid 2px;        border-bottom: solid 2px;        margin: 5px 0;        padding: 10px 40px;        white-space: pre-wrap;    }    .error_widget.ace_error, .error_widget_arrow.ace_error{        border-color: #ff5a5a    }    .error_widget.ace_warning, .error_widget_arrow.ace_warning{        border-color: #F1D817    }    .error_widget.ace_info, .error_widget_arrow.ace_info{        border-color: #5a5a5a    }    .error_widget.ace_ok, .error_widget_arrow.ace_ok{        border-color: #5aaa5a    }    .error_widget_arrow {        position: absolute;        border: solid 5px;        border-top-color: transparent!important;        border-right-color: transparent!important;        border-left-color: transparent!important;        top: -5px;    }</style>
+<script type="text/javascript">
+var edi;
+var bHeight;
+var mouseIsDown;
+function updateCanvas() {
+  var c = document.getElementById("eastCanvas");
+  var ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);
+
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  //ctx.strokeStyle = "#333";
+  // for(i=0; i < gene.size(); i++) {
+  //   var w = gene.get(i);
+  //   ctx.strokeStyle = "rgb(" + Math.floor(w * 255.0) + ",0," + (255 - Math.floor(w * 100.0)) +")";
+  //   w = (w * 2) - 1;
+  //   //ctx.strokeRect(c.width/2,(i*bHeight) + 1,(c.width/2) * w, (bHeight - 2));
+  //   ctx.moveTo((c.width/2) + ((c.width/2) * w), (i*bHeight) + (bHeight/2));
+  // }
+  var sx,sy;
+  sx = (c.width/2) + ((c.width/3) * ((gene.get(0) * 2) - 1));
+  sy = bHeight / 2;
+  ctx.moveTo(sx,sy);
+  var mod = 1;
+  for(i=0; i < gene.size(); i++) {
+    var w = gene.get(i);
+    ctx.strokeStyle = "rgba(" + Math.floor(w * 255.0) + ",0," + (255 - Math.floor(w * 100.0)) +", 0.4)";
+    w = (w * 2) - 1;
+    var nx = (c.width/2) + ((c.width/3) * w);
+    var ny = (i*bHeight) + (bHeight/2);
+    //ctx.strokeRect(c.width/2,(i*bHeight) + 1,(c.width/2) * w, (bHeight - 2));
+    ctx.strokeRect(nx - (bHeight/2), ny - (bHeight/2), bHeight, bHeight);
+    mod = sx < nx ? 1 : -1;
+    ctx.quadraticCurveTo(sx+((sx - nx) / 2), sy+bHeight, nx, ny);
+    mod = mod * -1;
+    sx = nx;
+    sy = ny;
+  }
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(0,0,0,1)";
+  ctx.stroke();
+}
+
+var accordionID = 0;
+function addCodePanel(funcName, enabled) {
+  //var idx = $('.codeAccordion').children().length;
+  console.log(accordionID);
+  console.log(funcName);
+  var butDel='button' + accordionID + 'del';
+  var butOn='button' + accordionID + 'a';
+  var butOff='button' + accordionID + 'b';
+  var accRowID = 'accRow' + accordionID;
+  var newDiv = '<div id="' + accRowID + '"><h1><span class="accHeader">' + funcName +
+  '</span><div id="onOffRadioSet' + accordionID + '" class="onOffRadios"><button id="' + butDel + '" class="delButton">Delete</button><button id="' + butOn + '">On</button><button id="' + butOff + '">Off</button>' +
+  '</div>' +
+  '</h1><div class="editorPanel"></div></div>';
+  // var newDiv = '<div><h1><span class="accHeader">' + functionNames.get(i) +
+  // '</span><div id="funcdata" data-name="' + functionNames.get(i) +'" style="display:none"></div><div id="onOffRadioSet' + i + '" class="onOffRadios"><button id="' + butOn + '">On</button><button id="' + butOff + '">Off</button>' +
+  // '</div>' +
+  // '</h1><div class="editorPanel"></div></div>';
+  $('.codeAccordion').append(newDiv)
+  $("#" + butOn).button().click({"bOn": butOn, "bOff": butOff, "funcName":funcName}, function (event) {
+    appx.enableFDef(event.data.funcName, 1);
+    generate();
+    $("#" + event.data.bOn).css({"background":"LimeGreen"});
+    $("#" + event.data.bOn).css({"color":"white"});
+    $("#" + event.data.bOff).css({"background":"white"});
+    $("#" + event.data.bOff).css({"color":"black"});
+    return false;
+  })
+  .css({"background":"LimeGreen"})
+  .css({"color":"white"});
+  $("#" + butOff).button().click({"bOn": butOn, "bOff": butOff, "funcName":funcName}, function (event) {
+    console.log(event.data.funcName);
+    appx.enableFDef(event.data.funcName, 0);
+    generate();
+    $("#" + event.data.bOff).css({"background":"OrangeRed"});
+    $("#" + event.data.bOff).css({"color":"white"});
+    $("#" + event.data.bOn).css({"background":"white"});
+    $("#" + event.data.bOn).css({"color":"black"});
+    return false;
+  })
+  .css({"background":"white"})
+  .css({"color":"black"});
+  $("#" + butDel).button().click({"funcName":funcName}, function (event) {
+    console.log("del: " + event.data.funcName);
+    console.log($('#' + accRowID));
+    $('#' + accRowID).remove();
+    $('.codeAccordion').accordion("refresh");
+    appx.removeFDef(event.data.funcName);
+    generate();
+    $('.codeAccordion').find(".delButton").css({"visibility":"hidden"});
+    return false;
+  })
+  .css({"background":"white"})
+  .css({"color":"red"})
+  .css({"visibility":"hidden"});
+  if(!enabled) {
+    $("#" + butOff).css({"background":"OrangeRed"});
+    $("#" + butOff).css({"color":"white"});
+    $("#" + butOn).css({"background":"white"});
+    $("#" + butOn).css({"color":"black"});
+  }
+  accordionID++;
+}
+
+$(document).ready(function(){
+  init();
+  var apxlayout = $("body").layout({applyDemoStyles:true, resizeable: true, west_minSize: 100, east_minSize: 300});
+  apxlayout.sizePane("west", 400);
+  apxlayout.sizePane("east", 400);
+
+
+  var dom = require("ace/lib/dom");
+  ace.require("ace/ext/language_tools");
+
+  //add command to all new editor instaces
+  // require("ace/commands/default_commands").commands.push({
+  //   name: "Toggle Fullscreen",
+  //   bindKey: "F5",
+  //   exec: function(editor) {
+  //     var fullScreen = dom.toggleCssClass(document.body, "fullScreen")
+  //     dom.setCssClass(editor.container, "fullScreen", fullScreen)
+  //     editor.setAutoScrollEditorIntoView(!fullScreen)
+  //     editor.resize()
+  //   }
+  // })
+  $("#saveSnapshotFormButton").button()
+  .click(function() {
+    console.log($('#saveSnapshotForm #snapNickName').val());
+    var newSnap = {};
+    newSnap.nickName = $('#saveSnapshotForm #snapNickName').val();
+    newSnap.title = $('#saveSnapshotForm #snapTitle').val()
+    newSnap.desc = $('#saveSnapshotForm #snapDesc').val()
+    newSnap.geneSize = GENESIZE;
+    newSnap.gene = new Array(GENESIZE);
+    for(i=0; i < GENESIZE; i++) newSnap.gene[i] = gene.get(i);
+//    var numFuncs = $('.codeAccordion').children().length;
+
+    functionNames = new Module.StringVector();
+    newSnap.funcs = new Array(functionNames.size());
+    newSnap.funcsEnabled = new Array(functionNames.size());
+    appx.getFunctionNames(functionNames);
+    for(i=0; i < functionNames.size(); i++) {
+      newSnap.funcs[i] = appx.getCode(functionNames.get(i));
+      newSnap.funcsEnabled[i] = appx.isEnabled(functionNames.get(i));
+    }
+    snapShots[newSnap.title] = newSnap;
+    localStorage.setItem('snapshot', JSON.stringify(newSnap));
+    localStorage.setItem('snapshots', JSON.stringify(snapShots));
+    console.log(JSON.parse(localStorage.getItem('snapshot')));
+    console.log(snapShots);
+    $('#saveSnapPopup').popup('hide');
+  });
+  $("#saveSnapshotFormCancelButton").button()
+  .click(function() {
+    $('#saveSnapPopup').popup('hide');
+  });
+  $("#saveSnapButton").button()
+  .click(function() {
+    console.log("saveSnap");
+    $('#saveSnapPopup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
+  });
+  $("#loadSnapButton").button()
+  .click(function() {
+    $('#loadSnapPopup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
+    var rows = $('.codeAccordion').find("span.accHeader");
+    console.log(rows.first().html());
+    rows.each(function(i) {
+      console.log($(this).html());
+      appx.removeFDef($(this).html());
+    })
+    rows = $('.codeAccordion').children();
+    $.each(rows, function(idx,val){
+      console.log(val);
+      val.remove();
+    });
+    var snap = JSON.parse(localStorage.getItem('snapshot'));
+    console.log(snap);
+    for(i=0; i < snap.funcs.length; i++) {
+//      console.log(snap.funcs[i]);
+      eval("var checker = " + snap.funcs[i]);
+      if(checker.length==0) {
+        console.log(checker.name);
+        var testInst = new checker();
+        if (testInst.play != undefined) {
+          console.log("function check passed");
+          var numArgs = testInst.play.length;
+          appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
+          appx.enableFDef(checker.name, snap.funcsEnabled[i]);
+          addCodePanel(checker.name, snap.funcsEnabled[i]);
+        }else{
+          console.log("function check failed");
+        }
+      }else{
+        console.log("function check failed");
+      }
+    };
+    $('.codeAccordion').accordion("refresh");
+
+    gene.resize(snap.geneSize, 0);
+    for(i=0; i < snap.geneSize; i++) {
+      gene.set(i, snap.gene[i]);
+    }
+    generate();
+    updateCanvas();
+  });
+
+  $("#helpButton").button()
+  .click(function() {
+    console.log("test");
+    $('#my_popup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
+  });
+
+  $("#randButton").button()
+  .click(function() {
+    randomiseGene();
+    generate();
+    updateCanvas();
+  });
+  $("#geneSizeSpinner").spinner({
+    min:5,
+    max:1000,
+    //todo: handle text editing here
+    spin: function(ev, ui) {
+      GENESIZE = ui.value;
+      gene.resize(GENESIZE,0);
+      randomiseGene();
+      generate();
+      updateCanvas();
+    }
+  }).val(GENESIZE).width(30);
+  //$("#geneSizeSpinner").value(10);
+  $("#addCodeButton").button()
+  .click(function() {
+    console.log("Add");
+    appx.addFuncDef("renameMe", "//add some comments about your function here\nfunction renameMe() {\n \
+\t//add state variables here, e.g.\n\
+\t//this.osc = new Module.maxiOsc();\n \
+\tthis.play = function(j0) {\n \
+\t\t//do something here\n \
+\t\treturn j0;\n \
+\t}\n \
+}\n", 1, 99999);
+
+    addCodePanel("renameMe", true);
+    $('.codeAccordion').accordion("refresh");
+  });
+  $("#deleteCodeButton").button()
+  .click(function() {
+    console.log("Delete");
+    $('.codeAccordion').find(".delButton").css({"visibility":"visible"});
+  });
+
+  $(".codeAccordion").accordion({
+    header: "> div > h1",
+    collapsible: true,
+    active: false,
+    autoHeight: true,
+    autoActivate: true,
+    heightStyle:	"fill",
+    animate: 80,
+    activate: function(event, ui) {
+//      var funcName = ui.newHeader.find("div").first().attr("data-name");
+      // var titleNode = ui.newHeader.first().contents().filter(function() {
+      //   return this.nodeType == 3;
+      // });
+      var titleNode = ui.newHeader.find("span.accHeader");
+      var funcName = titleNode.html();
+      console.log(titleNode.html());
+      if (ui.newHeader.length==0) {
+        ui.newPanel.empty()
+        ui.oldPanel.empty();
+      } else {
+        ui.oldPanel.empty();
+        //ui.oldPanel.append('<pre id="edit8"></pre>')
+        ui.newPanel.html('<pre id="edit8"></pre>')
+        edi = ace.edit("edit8");
+        edi.setTheme("ace/theme/chrome");
+        edi.session.setMode("ace/mode/javascript");
+        edi.setFontSize(10);
+        edi.renderer.setScrollMargin(10, 10);
+        edi.setOptions({
+          autoScrollEditorIntoView: false,
+        });
+        edi.$blockScrolling = Infinity;
+        edi.setValue(appx.getCode(funcName));
+        edi.clearSelection();
+        edi.on("change", function(e) {
+          try {
+            eval("var checker = " + edi.getValue());
+            if(checker.length==0) {
+              console.log(checker.name);
+              var testInst = new checker();
+              console.log(testInst);
+              if (testInst.play != undefined) {
+                console.log("function check passed");
+                if (checker.name != titleNode.html()) {
+                  appx.removeFDef(titleNode.html());
+                  titleNode.html(checker.name);
+                }
+                var numArgs = testInst.play.length;
+                console.log(numArgs);
+                appx.addFuncDef(checker.name, edi.getValue(), numArgs, 99999);
+                generate();
+              }else{
+                console.log("function check failed");
+              }
+            }else{
+              console.log("function check failed");
+            }
+          } catch (e) {
+            if (e instanceof SyntaxError) {
+              console.log(e.message);
+            } else {
+              console.log( e );
+            }
+          }
+          return true;
+        })
+      }
+    }
+  });
+
+
+  functionNames = new Module.StringVector();
+  appx.getFunctionNames(functionNames);
+  for(i=0; i < functionNames.size(); i++) {
+    addCodePanel(functionNames.get(i), true);
+  }
+  $('.codeAccordion').accordion("refresh");
+
+  // create first editor
+  editor = ace.edit("editor");
+  editor.setTheme("ace/theme/chrome");
+  editor.session.setMode("ace/mode/javascript");
+  editor.setFontSize(9);
+  editor.session.setUseWorker(false);
+  editor.renderer.setScrollMargin(10, 10);
+  editor.setOptions({
+    autoScrollEditorIntoView: false,
+    readOnly: true,
+    highlightActiveLine: false,
+    highlightGutterLine: false
+  });
+  editor.$blockScrolling = Infinity;
+
+  generate();
+  initAudio();
+
+  var c = document.getElementById("eastCanvas");
+  c.height = $('#eastCanvas').height();
+  c.width = $('#eastCanvas').width();
+  var ctx = c.getContext("2d");
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0,0,c.width,c.height);
+  bHeight = c.height / GENESIZE;
+  mouseIsDown = false;
+  updateCanvas();
+  function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top
+    };
+  }
+  c.addEventListener('mousemove', function(evt) {
+    var mousePos = getMousePos(c, evt);
+    var message = 'pos: ' + mousePos.x + ',' + mousePos.y;
+    if (mouseIsDown) {
+      updateGeneFromMouse(mousePos);
+    }
+  }, false);
+  function updateGeneFromMouse(mousePos) {
+    var geneIdx = Math.floor(mousePos.y / bHeight);
+    var newVal = (mousePos.x / c.width);
+    gene.set(geneIdx, newVal);
+    generate();
+    updateCanvas();
+  }
+  c.addEventListener('mousedown', function(evt) {
+    var mousePos = getMousePos(c, evt);
+    updateGeneFromMouse(mousePos);
+    mouseIsDown = true;
+  }, false);
+  c.addEventListener('mouseup', function(evt) {
+//    var mousePos = getMousePos(c, evt);
+    mouseIsDown = false;
+  }, false);
+
+  localStorage.setItem('test','cheese');
+});
+</script>
+
+<script src="./ApProgXimate Programming_files/theme-chrome.js"></script><script src="./ApProgXimate Programming_files/mode-javascript.js"></script><style id="ace-chrome">.ace-chrome .ace_gutter {background: #ebebeb;color: #333;overflow : hidden;}.ace-chrome .ace_print-margin {width: 1px;background: #e8e8e8;}.ace-chrome {background-color: #FFFFFF;color: black;}.ace-chrome .ace_cursor {color: black;}.ace-chrome .ace_invisible {color: rgb(191, 191, 191);}.ace-chrome .ace_constant.ace_buildin {color: rgb(88, 72, 246);}.ace-chrome .ace_constant.ace_language {color: rgb(88, 92, 246);}.ace-chrome .ace_constant.ace_library {color: rgb(6, 150, 14);}.ace-chrome .ace_invalid {background-color: rgb(153, 0, 0);color: white;}.ace-chrome .ace_fold {}.ace-chrome .ace_support.ace_function {color: rgb(60, 76, 114);}.ace-chrome .ace_support.ace_constant {color: rgb(6, 150, 14);}.ace-chrome .ace_support.ace_type,.ace-chrome .ace_support.ace_class.ace-chrome .ace_support.ace_other {color: rgb(109, 121, 222);}.ace-chrome .ace_variable.ace_parameter {font-style:italic;color:#FD971F;}.ace-chrome .ace_keyword.ace_operator {color: rgb(104, 118, 135);}.ace-chrome .ace_comment {color: #236e24;}.ace-chrome .ace_comment.ace_doc {color: #236e24;}.ace-chrome .ace_comment.ace_doc.ace_tag {color: #236e24;}.ace-chrome .ace_constant.ace_numeric {color: rgb(0, 0, 205);}.ace-chrome .ace_variable {color: rgb(49, 132, 149);}.ace-chrome .ace_xml-pe {color: rgb(104, 104, 91);}.ace-chrome .ace_entity.ace_name.ace_function {color: #0000A2;}.ace-chrome .ace_heading {color: rgb(12, 7, 255);}.ace-chrome .ace_list {color:rgb(185, 6, 144);}.ace-chrome .ace_marker-layer .ace_selection {background: rgb(181, 213, 255);}.ace-chrome .ace_marker-layer .ace_step {background: rgb(252, 255, 0);}.ace-chrome .ace_marker-layer .ace_stack {background: rgb(164, 229, 101);}.ace-chrome .ace_marker-layer .ace_bracket {margin: -1px 0 0 -1px;border: 1px solid rgb(192, 192, 192);}.ace-chrome .ace_marker-layer .ace_active-line {background: rgba(0, 0, 0, 0.07);}.ace-chrome .ace_gutter-active-line {background-color : #dcdcdc;}.ace-chrome .ace_marker-layer .ace_selected-word {background: rgb(250, 250, 255);border: 1px solid rgb(200, 200, 250);}.ace-chrome .ace_storage,.ace-chrome .ace_keyword,.ace-chrome .ace_meta.ace_tag {color: rgb(147, 15, 128);}.ace-chrome .ace_string.ace_regex {color: rgb(255, 0, 0)}.ace-chrome .ace_string {color: #1A1AA6;}.ace-chrome .ace_entity.ace_other.ace_attribute-name {color: #994409;}.ace-chrome .ace_indent-guide {background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==") right repeat-y;}
+/*# sourceURL=ace/css/ace-chrome */</style></head>
+
+<body class="ui-layout-container" style="overflow: hidden; width: auto; height: auto; margin: 0px; position: absolute; top: 0px; bottom: 0px; left: 0px; right: 0px;">
+
+
+
+  <div class="ui-layout-east ui-layout-pane ui-layout-pane-east" style="position: absolute; margin: 0px; left: auto; right: 0px; top: 56px; bottom: 56px; height: 623px; z-index: 0; padding: 10px; border: 1px solid rgb(187, 187, 187); overflow: auto; width: 378px; display: block; visibility: visible; background: rgb(255, 255, 255);">
+    <!-- <div style="" id="eq">
+  </div>
+-->
+<pre id="editor" class=" ace_editor ace-chrome" style="font-size: 9px;"><textarea class="ace_text-input" wrap="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="opacity: 0; height: 12px; width: 5.40094px; left: 54px; top: 662px;"></textarea><div class="ace_gutter"><div class="ace_layer ace_gutter-layer ace_folding-enabled" style="margin-top: -10px; height: 708px; width: 50px;"><div class="ace_gutter-cell " style="height: 12px;">101</div><div class="ace_gutter-cell " style="height: 12px;">102</div><div class="ace_gutter-cell " style="height: 12px;">103</div><div class="ace_gutter-cell " style="height: 12px;">104</div><div class="ace_gutter-cell " style="height: 12px;">105</div><div class="ace_gutter-cell " style="height: 12px;">106</div><div class="ace_gutter-cell " style="height: 12px;">107</div><div class="ace_gutter-cell " style="height: 12px;">108</div><div class="ace_gutter-cell " style="height: 12px;">109</div><div class="ace_gutter-cell " style="height: 12px;">110</div><div class="ace_gutter-cell " style="height: 12px;">111</div><div class="ace_gutter-cell " style="height: 12px;">112</div><div class="ace_gutter-cell " style="height: 12px;">113</div><div class="ace_gutter-cell " style="height: 12px;">114</div><div class="ace_gutter-cell " style="height: 12px;">115</div><div class="ace_gutter-cell " style="height: 12px;">116</div><div class="ace_gutter-cell " style="height: 12px;">117</div><div class="ace_gutter-cell " style="height: 12px;">118</div><div class="ace_gutter-cell " style="height: 12px;">119</div><div class="ace_gutter-cell " style="height: 12px;">120</div><div class="ace_gutter-cell " style="height: 12px;">121</div><div class="ace_gutter-cell " style="height: 12px;">122</div><div class="ace_gutter-cell " style="height: 12px;">123</div><div class="ace_gutter-cell " style="height: 12px;">124</div><div class="ace_gutter-cell " style="height: 12px;">125</div><div class="ace_gutter-cell " style="height: 12px;">126</div><div class="ace_gutter-cell " style="height: 12px;">127</div><div class="ace_gutter-cell " style="height: 12px;">128</div><div class="ace_gutter-cell " style="height: 12px;">129</div><div class="ace_gutter-cell " style="height: 12px;">130</div><div class="ace_gutter-cell " style="height: 12px;">131</div><div class="ace_gutter-cell " style="height: 12px;">132</div><div class="ace_gutter-cell " style="height: 12px;">133<span class="ace_fold-widget ace_start ace_open" style="height: 12px;"></span></div><div class="ace_gutter-cell " style="height: 12px;">134</div><div class="ace_gutter-cell " style="height: 12px;">135</div><div class="ace_gutter-cell " style="height: 12px;">136</div><div class="ace_gutter-cell " style="height: 12px;">137</div><div class="ace_gutter-cell " style="height: 12px;">138</div><div class="ace_gutter-cell " style="height: 12px;">139</div><div class="ace_gutter-cell " style="height: 12px;">140</div><div class="ace_gutter-cell " style="height: 12px;">141</div><div class="ace_gutter-cell " style="height: 12px;">142</div><div class="ace_gutter-cell " style="height: 12px;">143</div><div class="ace_gutter-cell " style="height: 12px;">144</div><div class="ace_gutter-cell " style="height: 12px;">145</div><div class="ace_gutter-cell " style="height: 12px;">146</div><div class="ace_gutter-cell " style="height: 12px;">147</div><div class="ace_gutter-cell " style="height: 12px;">148</div><div class="ace_gutter-cell " style="height: 12px;">149</div><div class="ace_gutter-cell " style="height: 12px;">150</div><div class="ace_gutter-cell " style="height: 12px;">151</div><div class="ace_gutter-cell " style="height: 12px;">152</div><div class="ace_gutter-cell " style="height: 12px;">153</div><div class="ace_gutter-cell " style="height: 12px;">154</div><div class="ace_gutter-cell " style="height: 12px;">155</div><div class="ace_gutter-cell " style="height: 12px;">156</div><div class="ace_gutter-cell " style="height: 12px;">157</div></div><div class="ace_gutter-active-line" style="top: 0px; height: 12px; display: none;"></div></div><div class="ace_scroller" style="left: 50px; right: 0px; bottom: 0px;"><div class="ace_content" style="margin-top: -10px; width: 1002px; height: 708px; margin-left: 0px;"><div class="ace_layer ace_print-margin-layer"><div class="ace_print-margin" style="left: 436.075px; visibility: visible;"></div></div><div class="ace_layer ace_marker-layer"></div><div class="ace_layer ace_text-layer" style="padding: 0px 4px;"><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">add11</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">square22</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">tanh_37</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">add41</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">gwr144</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">saw46</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span><span class="ace_constant ace_numeric">0.902687</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span><span class="ace_punctuation ace_operator">,</span> <span class="ace_constant ace_numeric">0.552119</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span><span class="ace_punctuation ace_operator">,</span> </div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">gr114</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">gr116</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">square18</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">gr120</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">square24</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_identifier">mul28</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">play</span><span class="ace_paren ace_lparen">(</span><span class="ace_constant ace_numeric">0.798609</span><span class="ace_punctuation ace_operator">,</span> <span class="ace_constant ace_numeric">-0.228911</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_indent-guide">    </span>    <span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_paren ace_rparen">)</span><span class="ace_punctuation ace_operator">;</span></div><div class="ace_line" style="height:12px">   <span class="ace_keyword">return</span> <span class="ace_identifier">w</span><span class="ace_punctuation ace_operator">;</span></div><div class="ace_line" style="height:12px"><span class="ace_paren ace_rparen">}</span></div><div class="ace_line" style="height:12px"></div><div class="ace_line" style="height:12px"><span class="ace_storage ace_type">function</span> <span class="ace_entity ace_name ace_function">_cleanUp</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span> <span class="ace_paren ace_lparen">{</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">square0</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">samp2</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">add4</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">gr126</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">samp31</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">gr133</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">gwr135</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">saw39</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">gr17</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">samp9</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">add11</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">square22</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">tanh_37</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">add41</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">gwr144</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">saw46</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">gr114</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">gr116</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">square18</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">gr120</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">square24</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px">    <span class="ace_identifier">mul28</span><span class="ace_punctuation ace_operator">.</span><span class="ace_identifier">delete</span><span class="ace_paren ace_lparen">(</span><span class="ace_paren ace_rparen">)</span></div><div class="ace_line" style="height:12px"><span class="ace_paren ace_rparen">}</span></div><div class="ace_line" style="height:12px"></div></div><div class="ace_layer ace_marker-layer"></div><div class="ace_layer ace_cursor-layer ace_hidden-cursors"><div class="ace_cursor" style="left: 4px; top: 672px; width: 5.40094px; height: 12px;"></div></div></div></div><div class="ace_scrollbar ace_scrollbar-v" style="width: 20px; bottom: 0px;"><div class="ace_scrollbar-inner" style="width: 20px; height: 1904px;"></div></div><div class="ace_scrollbar ace_scrollbar-h" style="height: 20px; left: 50px; right: 0px;"><div class="ace_scrollbar-inner" style="height: 20px; width: 1002px;"></div></div><div style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; overflow: hidden;"><div style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; overflow: visible;"></div><div style="height: auto; width: auto; top: 0px; left: 0px; visibility: hidden; position: absolute; white-space: pre; font-style: inherit; font-variant: inherit; font-stretch: inherit; font-size: inherit; line-height: inherit; font-family: inherit; overflow: visible;">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</div></div></pre>
+</div>
+<div class="ui-layout-north ui-layout-pane ui-layout-pane-north" style="position: absolute; margin: 0px; top: 0px; bottom: auto; left: 0px; right: 0px; width: auto; z-index: 0; padding: 10px; border: 1px solid rgb(187, 187, 187); overflow: auto; height: 28px; display: block; visibility: visible; background: rgb(255, 255, 255);">ApProgXimate Audio
+  <!-- <button onclick="startRecording(this);">record</button>
+  <button onclick="stopRecording(this);" disabled>stop</button>
+  <ul id="recordingslist"></ul> -->
+  <div id="topButtonBar">
+    <button id="saveSnapButton" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">
+      Save Snapshot
+    </span></button>
+    <button id="loadSnapButton" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">
+      Load Snapshot
+    </span></button>
+    Gene Size:
+    <span class="ui-spinner ui-widget ui-widget-content ui-corner-all"><input type="text" id="geneSizeSpinner" aria-valuemin="5" aria-valuemax="1000" class="ui-spinner-input" autocomplete="off" role="spinbutton" style="width: 30px;"><a class="ui-spinner-button ui-spinner-up ui-corner-tr ui-button ui-widget ui-state-default ui-button-text-only" tabindex="-1" role="button"><span class="ui-button-text"><span class="ui-icon ui-icon-triangle-1-n">▲</span></span></a><a class="ui-spinner-button ui-spinner-down ui-corner-br ui-button ui-widget ui-state-default ui-button-text-only" tabindex="-1" role="button"><span class="ui-button-text"><span class="ui-icon ui-icon-triangle-1-s">▼</span></span></a></span>
+    <button id="randButton" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">
+      Randomise
+    </span></button>
+  </div>
+</div>
+<!--<canvas id="view1" width="800px" height="600px"></canvas>-->
+<div class="ui-layout-south ui-layout-pane ui-layout-pane-south" style="position: absolute; margin: 0px; top: auto; bottom: 0px; left: 0px; right: 0px; width: auto; z-index: 0; padding: 10px; border: 1px solid rgb(187, 187, 187); overflow: auto; height: 28px; display: block; visibility: visible; background: rgb(255, 255, 255);">
+  <button id="helpButton" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">?</span></button>
+</div>
+<div class="ui-layout-center ui-layout-pane ui-layout-pane-center" style="position: absolute; margin: 0px; left: 406px; right: 406px; top: 56px; bottom: 56px; height: 623px; width: 337px; z-index: 0; padding: 10px; border: 1px solid rgb(187, 187, 187); overflow: auto; display: block; visibility: visible; background: rgb(255, 255, 255);"><canvas id="eastCanvas" style="height: 100%; width: 100%;" height="684" width="337"></canvas> </div>
+<div class="ui-layout-west ui-layout-pane ui-layout-pane-west" style="position: absolute; margin: 0px; left: 0px; right: auto; top: 56px; bottom: 56px; height: 623px; z-index: 0; padding: 10px; border: 1px solid rgb(187, 187, 187); overflow: auto; width: 378px; display: block; visibility: visible; background: rgb(255, 255, 255);">
+  <div id="codeButtonBar">
+    <button id="deleteCodeButton" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">Delete</span></button>
+    <button id="addCodeButton" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">Add</span></button>
+  </div>
+  <div id="accordion1" class="codeAccordion ui-accordion ui-widget ui-helper-reset" role="tablist">
+  <div id="accRow0"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-1" aria-controls="ui-id-2" aria-selected="false" aria-expanded="false" tabindex="0"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">add</span><div id="onOffRadioSet0" class="onOffRadios"><button id="button0del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button0a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button0b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-2" aria-labelledby="ui-id-1" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow1"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-3" aria-controls="ui-id-4" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">gate</span><div id="onOffRadioSet1" class="onOffRadios"><button id="button1del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button1a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button1b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-4" aria-labelledby="ui-id-3" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow2"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-5" aria-controls="ui-id-6" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">gr1</span><div id="onOffRadioSet2" class="onOffRadios"><button id="button2del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button2a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button2b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-6" aria-labelledby="ui-id-5" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow3"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-7" aria-controls="ui-id-8" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">gwr1</span><div id="onOffRadioSet3" class="onOffRadios"><button id="button3del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button3a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button3b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-8" aria-labelledby="ui-id-7" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow4"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-9" aria-controls="ui-id-10" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">lfsaw</span><div id="onOffRadioSet4" class="onOffRadios"><button id="button4del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button4a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button4b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-10" aria-labelledby="ui-id-9" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow5"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-11" aria-controls="ui-id-12" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">mul</span><div id="onOffRadioSet5" class="onOffRadios"><button id="button5del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button5a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button5b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-12" aria-labelledby="ui-id-11" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow6"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-13" aria-controls="ui-id-14" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">samp</span><div id="onOffRadioSet6" class="onOffRadios"><button id="button6del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button6a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button6b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-14" aria-labelledby="ui-id-13" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow7"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-15" aria-controls="ui-id-16" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">saw</span><div id="onOffRadioSet7" class="onOffRadios"><button id="button7del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button7a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button7b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-16" aria-labelledby="ui-id-15" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow8"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-17" aria-controls="ui-id-18" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">square</span><div id="onOffRadioSet8" class="onOffRadios"><button id="button8del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button8a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button8b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-18" aria-labelledby="ui-id-17" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div><div id="accRow9"><h1 class="ui-accordion-header ui-state-default ui-corner-all ui-accordion-icons" role="tab" id="ui-id-19" aria-controls="ui-id-20" aria-selected="false" aria-expanded="false" tabindex="-1"><span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></span><span class="accHeader">tanh_</span><div id="onOffRadioSet9" class="onOffRadios"><button id="button9del" class="delButton ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 0, 0); visibility: hidden; background: white;"><span class="ui-button-text">Delete</span></button><button id="button9a" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(255, 255, 255); background: limegreen;"><span class="ui-button-text">On</span></button><button id="button9b" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button" style="color: rgb(0, 0, 0); background: white;"><span class="ui-button-text">Off</span></button></div></h1><div class="editorPanel ui-accordion-content ui-helper-reset ui-widget-content ui-corner-bottom" id="ui-id-20" aria-labelledby="ui-id-19" role="tabpanel" aria-hidden="true" style="display: none; height: 326px; overflow: auto;"></div></div></div>
+</div>
+
+<div id="my_popup" style="background:white; padding:10px; border-box:10px; max-width:30em;">
+
+   <div><h1>Approximate Programming</h1></div>
+   <div><h2>What is approximate programming?</h2></div>
+   <div>Approximage programming</div>
+
+   <!-- Add an optional button to close the popup -->
+   <button class="my_popup_close">Close</button>
+
+ </div>
+
+ <div id="saveSnapPopup" style="background:white; padding:10px; border-box:10px; max-width:30em; visibility:hidden;">
+
+    <form id="saveSnapshotForm" action="http://localhost:8000/soundTest.html#">
+        <div>
+            <h3>Save Scene</h3>
+            <div>
+              <label for="snapNickName">Nickname</label>
+              <input id="snapNickName" name="snapNickName" type="text" style="float:right">
+            </div>
+            <div>
+              <label for="snapTitle">Title</label>
+              <input id="snapTitle" name="snapTitle" type="text" style="float:right">
+            </div>
+            <div>
+              <label for="snapDesc">Description</label>
+              <textarea id="snapDesc" name="snapDesc" rows="3" style="float:right"></textarea>
+            </div>
+        </div>
+    </form>
+    <!-- Add an optional button to close the popup -->
+    <div style="padding:5px; marginTop:">
+      <button id="saveSnapshotFormCancelButton" class="my_popup_close ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">Cancel</span></button>
+      <button id="saveSnapshotFormButton" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" role="button"><span class="ui-button-text">Save</span></button>
+    </div>
+
+</div>
+<div id="loadSnapPopup" style="background:white; padding:10px; border-box:10px; max-width:30em; max-height:80%; overflow-y:scroll">
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+    <div class="snapDesc">
+      <div><h3>SnapshotTitle</h3> by <span>someone</span></div>
+      <div>some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc some blurb about this snapshot and what is does etc </div>
+    </div>
+</div>
+
+
+<div id="" class="ui-layout-resizer ui-layout-resizer-north ui-layout-resizer-open ui-layout-resizer-north-open" style="position: absolute; padding: 0px; margin: 0px; font-size: 1px; text-align: left; overflow: hidden; z-index: 2; border: none; top: 50px; cursor: default; width: 1171px; height: 6px; left: 0px; background: rgb(221, 221, 221);"><div id="" class="ui-layout-toggler ui-layout-toggler-north ui-layout-toggler-open ui-layout-toggler-north-open" title="Close" style="position: absolute; display: block; padding: 0px; margin: 0px; overflow: hidden; text-align: center; font-size: 1px; cursor: pointer; z-index: 1; visibility: visible; width: 48px; height: 6px; left: 560px; top: 0px; background: rgb(170, 170, 170);"></div></div><div id="" class="ui-layout-resizer ui-layout-resizer-south ui-layout-resizer-open ui-layout-resizer-south-open" style="position: absolute; padding: 0px; margin: 0px; font-size: 1px; text-align: left; overflow: hidden; z-index: 2; border: none; bottom: 50px; cursor: default; width: 1171px; height: 6px; left: 0px; background: rgb(221, 221, 221);"><div id="" class="ui-layout-toggler ui-layout-toggler-south ui-layout-toggler-open ui-layout-toggler-south-open" title="Close" style="position: absolute; display: block; padding: 0px; margin: 0px; overflow: hidden; text-align: center; font-size: 1px; cursor: pointer; z-index: 1; visibility: visible; width: 48px; height: 6px; left: 560px; top: 0px; background: rgb(170, 170, 170);"></div></div><div id="" class="ui-layout-resizer ui-layout-resizer-west ui-layout-resizer-open ui-layout-resizer-west-open" style="position: absolute; padding: 0px; margin: 0px; font-size: 1px; text-align: left; overflow: hidden; z-index: 2; border: none; left: 400px; cursor: default; height: 645px; width: 6px; top: 56px; background: rgb(221, 221, 221);"><div id="" class="ui-layout-toggler ui-layout-toggler-west ui-layout-toggler-open ui-layout-toggler-west-open" title="Close" style="position: absolute; display: block; padding: 0px; margin: 0px; overflow: hidden; text-align: center; font-size: 1px; cursor: pointer; z-index: 1; visibility: visible; height: 48px; width: 6px; top: 297px; left: 0px; background: rgb(170, 170, 170);"></div></div><div id="" class="ui-layout-resizer ui-layout-resizer-east ui-layout-resizer-open ui-layout-resizer-east-open" style="position: absolute; padding: 0px; margin: 0px; font-size: 1px; text-align: left; overflow: hidden; z-index: 2; border: none; right: 400px; cursor: default; height: 645px; width: 6px; top: 56px; background: rgb(221, 221, 221);"><div id="" class="ui-layout-toggler ui-layout-toggler-east ui-layout-toggler-open ui-layout-toggler-east-open" title="Close" style="position: absolute; display: block; padding: 0px; margin: 0px; overflow: hidden; text-align: center; font-size: 1px; cursor: pointer; z-index: 1; visibility: visible; height: 48px; width: 6px; top: 297px; left: 0px; background: rgb(170, 170, 170);"></div></div></body></html>

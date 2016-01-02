@@ -309,10 +309,12 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, bool clear) {
     
     
     //functions
-    stringstream code, codeDecls, codeBody;
+    stringstream code, codeDecls, codeBody, codeCleanup;
     
     for(auto it = funcDefs.begin(); it != funcDefs.end(); ++it) {
-        code << it->second.functionDef << endl;
+        if (it->second.enabled) {
+            code << it->second.functionDef << endl;
+        }
     }
     
 //    for(int i=0; i < funcDefs.size(); i++) {
@@ -328,7 +330,7 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, bool clear) {
     
     geneToTree(gene, dataTypeFuncs);
     
-    traverseJS(root, codeDecls, codeBody);
+    traverseJS(root, codeDecls, codeBody, codeCleanup);
     
     code << codeDecls.str() << endl;
     code << "function approxRenderer() {\n"
@@ -337,13 +339,23 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, bool clear) {
     code << codeBody.str();
     code << ";\n";
     code << "   return w;\n";
-    code << "}";
+    code << "}\n";
+    code << "\nfunction _cleanUp() {\n";
+    code << "function _dispose(x){\n"
+    "   for(k in Object.keys(x)) {\n"
+    "       if (typeof x[k] == 'object' && typeof x[k].$$ == 'object') {\n"
+    "           x[k].delete();\n"
+    "       }\n"
+    "   }\n"
+    "}\n";
+    code << codeCleanup.str();
+    code << "}\n";
     
     
     return code.str();
 }
 
-void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::stringstream &codeBody, int level) {
+void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::stringstream &codeBody, std::stringstream &cleanupCode, int level) {
     if (node->isConst()) {
         dataTypeToCode(((constNode*)node)->dType, codeBody, (((constNode*)node)->value-0.5) * 2);
     }else{
@@ -351,10 +363,11 @@ void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls
         stringstream varName;
         varName << ((codeNode*)node)->funcDef->functionName << ((codeNode*)node)->id;
         codeDecls << "var " << varName.str() << " = new " << ((codeNode*)node)->funcDef->functionName << "();\n";
+        cleanupCode << "\t_dispose(" << varName.str() << ");\n";
         for(int i=0; i <= level; i++) codeBody << "\t";
         codeBody << varName.str() << ".play(";
         for(int i=0; i < node->paramNodes.size(); i++) {
-            traverseJS(node->paramNodes[i], codeDecls, codeBody, level+1);
+            traverseJS(node->paramNodes[i], codeDecls, codeBody, cleanupCode, level+1);
             if (i+1 < node->paramNodes.size()) {
                 codeBody << ", ";
             }
