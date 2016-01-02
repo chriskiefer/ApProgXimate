@@ -82,6 +82,12 @@
     font-size: 0.8em;
     font-weight: normal;
   }
+
+  .snapDesc {
+    border-style: solid;
+    border-width: 1px;
+    padding:1em;
+  }
   /*.scrollmargin {
   height: 500px;
   text-align: center;
@@ -103,11 +109,13 @@ AudioContext = AudioContext || webkitAudioContext;
 // init() once the page has finished loading.
 //window.onload = init;
 
-var context;
+var audioCtx = new AudioContext();
 var source = 0;
 var jsProcessor = 0;
-var preGain;
-var limiter;
+var dcProcessor = 0;
+var preGain = audioCtx.createGain();
+var limiter = 0;
+var masterLPF=0;
 var analyser;
 var analyserView1;
 var gene;
@@ -119,6 +127,10 @@ for (i=0; i < GLOBALMEMSIZE; i++) {
   globalMemory[i] = 0;
 };
 var snapShots = {};
+if (localStorage.getItem('snapshots') != null) {
+  snapShots = JSON.parse(localStorage.getItem('snapshots'));
+}
+
 
 var recorder;
 function startRecording(button) {
@@ -159,9 +171,7 @@ function process(event) {
   inputArrayR = event.inputBuffer.getChannelData(1);
   outputArrayL = event.outputBuffer.getChannelData(0);
   outputArrayR = event.outputBuffer.getChannelData(1);
-
   n = inputArrayL.length;
-
   for (i = 0; i < n; ++i) {
     x = approxRenderer();
     outputArrayL[i] = x;
@@ -169,23 +179,44 @@ function process(event) {
   }
 }
 
+var dcBlocker = new Module.maxiDCBlocker();
+function dcBlockerFunc(event) {
+  //Get left/right input and output arrays
+  inputArrayL = event.inputBuffer.getChannelData(0);
+  inputArrayR = event.inputBuffer.getChannelData(1);
+  outputArrayL = event.outputBuffer.getChannelData(0);
+  outputArrayR = event.outputBuffer.getChannelData(1);
+  n = inputArrayL.length;
+  for (i = 0; i < n; ++i) {
+    x = inputArrayL[i];
+    if (isNaN(x)) {
+      console.log("NaNs!!!");
+      x=0;
+    }
+    if (x < -1) {
+      x=-1;
+    }else {
+      if (x > 1) {
+        x=1;
+      }
+    }
+    x = dcBlocker.play(x, 0.94);
+
+    outputArrayL[i] = x;
+    outputArrayR[i] = x;
+  }
+}
 
 // if ( !window.requestAnimationFrame ) {
-
 //         window.requestAnimationFrame = ( function() {
-
 //                 return window.webkitRequestAnimationFrame ||
 //                 window.mozRequestAnimationFrame || // comment out if FF4 is slow (it caps framerate at ~30fps: https://bugzilla.mozilla.org/show_bug.cgi?id=630127)
 //                 window.oRequestAnimationFrame ||
 //                 window.msRequestAnimationFrame ||
 //                 function( /* function FrameRequestCallback */ callback, /* DOMElement Element */ element ) {
-
 //                         window.setTimeout( callback, 1000 / 60 );
-
 //                 };
-
 //         } )();
-
 // }
 
 function randomiseGene() {
@@ -194,36 +225,42 @@ function randomiseGene() {
   }
 }
 
-
 function initAudio() {
 
-  context = new AudioContext();
-  source = context.createBufferSource();
+  // audioCtx = new AudioContext();
+  source = audioCtx.createBufferSource();
 
   // This AudioNode will do the amplitude modulation effect directly in JavaScript
-  jsProcessor = context.createScriptProcessor(1024);
+  jsProcessor = audioCtx.createScriptProcessor(1024);
   jsProcessor.onaudioprocess = process;
 
-  analyser = context.createAnalyser();
-  analyser.fftSize = 2048;
+  dcProcessor = audioCtx.createScriptProcessor(1024);
+  dcProcessor.onaudioprocess = dcBlockerFunc;
 
-  preGain = context.createGain();
-  preGain.value = 0.1;
-  limiter = context.createDynamicsCompressor();
-  limiter.threshold.value = -0.1;
+  masterLPF = audioCtx.createBiquadFilter();
+  masterLPF.type='lowshelf';
+  masterLPF.frequency = 19000;
+  masterLPF.gain = -100;
+
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+
+  preGain.gain.value = 1;
+  limiter = audioCtx.createDynamicsCompressor();
+  limiter.threshold.value = -0.05;
   limiter.knee.value = 0.0;
-  limiter.ratio.value = 2.0;
-  limiter.attack.value = 0.005;
+  limiter.ratio.value = 20.0;
+  limiter.attack.value = 0;
   limiter.release.value = 0.05;
 
-
-  // Connect the processing graph: source -> jsProcessor -> analyser -> destination
   source.connect(jsProcessor);
-  jsProcessor.connect(preGain);
+  jsProcessor.connect(dcProcessor);
+  dcProcessor.connect(preGain);
+  //masterLPF.connect(preGain);
   preGain.connect(limiter);
   limiter.connect(analyser);
-  analyser.connect(context.destination);
-  recorder = new Recorder(preGain);
+  analyser.connect(audioCtx.destination);
+  //recorder = new Recorder(preGain);
 
 }
 
@@ -237,6 +274,7 @@ function _dispose(x){
 
 
 function generate() {
+  preGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.01);
   appx.collectDataTypes();
   code = appx.genCode(gene, true);
   for(i=0; i < GLOBALMEMSIZE; i++) {
@@ -249,6 +287,7 @@ function generate() {
   //console.log(code);
   editor.setValue(code);
   editor.clearSelection();
+  preGain.gain.exponentialRampToValueAtTime(1, audioCtx.currentTime + 0.1);
 }
 
 function init() {
@@ -257,11 +296,11 @@ function init() {
       return j1 + j2;\n \
     }\n \
   }\n", 2, 99999);
-  // appx.addFuncDef("mix", "function mix() {\n \
-  //    this.play = function(j1, j2, j3) {\n \
-  //        return (j1 * j3) + (j2 * (1 - j3));\n \
-  //    }\n \
-  // }\n", 3, 99999);
+  appx.addFuncDef("mix", "function mix() {\n \
+     this.play = function(j1, j2, j3) {\n \
+         return (j1 * j3) + (j2 * (1 - j3));\n \
+     }\n \
+  }\n", 3, 99999);
   appx.addFuncDef("mul", "function mul() {\n \
     this.play = function(j1, j2) {\n \
       return j1 * j2;\n \
@@ -289,33 +328,33 @@ function init() {
     }\n \
   }\n", 1, 99999);
 
-  // appx.addFuncDef("lfsquare", "function lfsquare() {\n \
-  //   this.osc = new Module.maxiOsc();\n \
-  //   this.play = function(j0) {\n \
-  //     return this.osc.square(Module.maxiMap.linexp(j0,-1,1,0.01,15));\n \
-  //   }\n \
-  // }\n", 1, 99999);
-  //
-  // appx.addFuncDef("lpf", "function lpf() {\n \
-  //   this.filter = new Module.maxiFilter();\n \
-  //   this.play = function(j0,j1) {\n \
-  //     return this.filter.lopass(j0, (j1 + 1) / 2);\n \
-  //   }\n \
-  // }\n", 2, 99999);
-  // appx.addFuncDef("lpfz", "function lpfz() {\n \
-  //    this.filter = new Module.maxiFilter();\n \
-  //    this.play = function(j0,j1,j2) {\n \
-  //        return this.filter.lores(j0, Module.maxiMap.linexp(j1,-1,1,20,10000), Module.maxiMap.linlin(j2, -1, 1, 1, 5));\n \
-  //    }\n \
-  // }\n", 3, 99999);
-  //
-  // appx.addFuncDef("hpf", "function hpf() {\n \
-  //    this.filter = new Module.maxiFilter();\n \
-  //    this.play = function(j0,j1) {\n \
-  //        return this.filter.hipass(j0, (j1 + 1) / 2);\n \
-  //    }\n \
-  // }\n", 2, 99999);
-  //
+  appx.addFuncDef("lfsquare", "function lfsquare() {\n \
+    this.osc = new Module.maxiOsc();\n \
+    this.play = function(j0) {\n \
+      return this.osc.square(Module.maxiMap.linexp(j0,-1,1,0.01,15));\n \
+    }\n \
+  }\n", 1, 99999);
+
+  appx.addFuncDef("lpf", "function lpf() {\n \
+    this.filter = new Module.maxiFilter();\n \
+    this.play = function(j0,j1) {\n \
+      return this.filter.lopass(j0, (j1 + 1) / 2);\n \
+    }\n \
+  }\n", 2, 99999);
+  appx.addFuncDef("lpfz", "function lpfz() {\n \
+     this.filter = new Module.maxiFilter();\n \
+     this.play = function(j0,j1,j2) {\n \
+         return this.filter.lores(j0, Module.maxiMap.linexp(j1,-1,1,20,10000), Module.maxiMap.linlin(j2, -1, 1, 1, 5));\n \
+     }\n \
+  }\n", 3, 99999);
+
+  appx.addFuncDef("hpf", "function hpf() {\n \
+     this.filter = new Module.maxiFilter();\n \
+     this.play = function(j0,j1) {\n \
+         return this.filter.hipass(j0, (j1 + 1) / 2);\n \
+     }\n \
+  }\n", 2, 99999);
+
   appx.addFuncDef("gate", "function gate() {\n \
     this.filter = new Module.maxiFilter();\n \
     this.ampctl = 0; \
@@ -371,19 +410,19 @@ function samp() { \n\
     }\n \
   }\n", 1, 99999);
 
-  // appx.addFuncDef("seq", "function seq() {\n \
-  //   this.vals = [1,9,4,-6,3]; \
-  //   this.idx = 0; \
-  //   this.last =0; \
-  //    this.play = function(j0) {\n \
-  //        if (this.last < 0 && j0 >= 0) {\
-  //          this.idx++; \
-  //          if (this.idx == this.vals.length) this.idx = 0; \
-  //        } \
-  //        this.last = j0; \
-  //        return this.vals[this.idx] / 10.0;\n \
-  //    }\n \
-  // }\n", 1, 99999);
+  appx.addFuncDef("seq", "function seq() {\n \
+    this.vals = [1,9,4,-6,3]; \
+    this.idx = 0; \
+    this.last =0; \
+     this.play = function(j0) {\n \
+         if (this.last < 0 && j0 >= 0) {\
+           this.idx++; \
+           if (this.idx == this.vals.length) this.idx = 0; \
+         } \
+         this.last = j0; \
+         return this.vals[this.idx] / 10.0;\n \
+     }\n \
+  }\n", 1, 99999);
 
 
   gene = new Module.FloatVector();
@@ -613,7 +652,7 @@ $(document).ready(function(){
   });
   $("#loadSnapButton").button()
   .click(function() {
-    $('#loadSnapPopup').empty().append('<div>Load Scene<div style="float:right;">   <button class="my_popup_close" >Close</button></div></div>');
+    $('#loadSnapPopup').empty().append('<div>Load Scene<!--<div style="float:right;"><button class="my_popup_close" >Close</button></div>--></div>');
     snapShots = JSON.parse(localStorage.getItem('snapshots'));
     console.log(snapShots);
     buttonIdx = 0;
@@ -622,7 +661,7 @@ $(document).ready(function(){
       buttonID = "loadSnapButton" + buttonIdx;
       $('#loadSnapPopup').append(' \
        <div class="snapDesc"> \
-        <div><h3>' + snapShots[e].title + '</h3> by <span>' + snapShots[e].nickName + '</span></div> \
+        <div><span style="font-weight:bold">' + snapShots[e].title + '</span><span style="font-size:70%"> by ' + snapShots[e].nickName + '</span></div> \
         <div>' + snapShots[e].desc + '</div> \
         <div><button data-name="' + snapShots[e].title + '" id="' + buttonID+ '">load</button></div> \
       </div> \
@@ -677,10 +716,10 @@ $(document).ready(function(){
         $('#loadSnapPopup').popup('hide');
       });
     }
-    $("#closeLoadSnapPopupButton").button()
-    .click(function() {
-      $('#loadSnapPopup').popup('hide');
-    });
+    // $("#closeLoadSnapPopupButton").button()
+    // .click(function() {
+    //   $('#loadSnapPopup').popup('hide');
+    // });
     $('#loadSnapPopup').popup({
       autoopen:true,
       color:'white',
@@ -962,7 +1001,7 @@ $(document).ready(function(){
     </div>
 
 </div>
-<div id="loadSnapPopup" style="background:white; padding:10px; border-box:10px; max-width:30em; max-height:80%; overflow-y:scroll;visibility:hidden;">
+<div id="loadSnapPopup" style="background:white; padding:10px; border-box:10px; min-width=20em;width:400px;max-width:30em; max-height:80%; overflow-y:scroll;visibility:hidden;">
   <div>Load Scene
     <div style="float:right;"><button idcloseLoadSnapPopupButton="closeLoadSnapPopupButton">close</button></div>
   </div>

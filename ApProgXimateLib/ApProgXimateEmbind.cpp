@@ -120,6 +120,11 @@ EMSCRIPTEN_BINDINGS(my_module) {
     .function("play", select_overload<double(double)>(&maxiSample::play))
     ;
 
+    class_<maxiDCBlocker>("maxiDCBlocker")
+    .constructor<>()
+    .function("play", &maxiDCBlocker::play)
+    ;
+
     class_<apProgXimateJS>("approgx")
     .constructor<>()
     .function("genCode", &apProgXimateJS::genCode)
