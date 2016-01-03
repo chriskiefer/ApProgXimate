@@ -96,6 +96,15 @@ int main(int argc, const char * argv[]) {
                    ,
                    2, 99999
                    );
+    apx.addFuncDef("pow",
+                   "function pow() {\n"
+                   "   this.play = function(j1, j0) {\n"
+                   "       return Math.pow(j1, j0);\n"
+                   "   }\n"
+                   "}\n"
+                   ,
+                   2, 99999
+                   );
 
     //    apx.apProgXimate::addFuncDef(
 //                   fdef("mult",
@@ -118,6 +127,7 @@ int main(int argc, const char * argv[]) {
 //                        1, (unsigned int[]) {JS_VAR}, JS_VAR)
 //                   );
     apx.enableFDef("add", false);
+    apx.removeFDef("pow");
 
     std::vector<std::string> funcNames;
     apx.getFunctionNames(funcNames);

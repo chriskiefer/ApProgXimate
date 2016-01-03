@@ -603,6 +603,11 @@ $(document).ready(function(){
   apxlayout.sizePane("west", 400);
   apxlayout.sizePane("east", 400);
 
+  $(document).on("keydown", function (e) {
+      if (e.which === 8 && !$(e.target).is("input, textarea")) {
+          e.preventDefault();
+      }
+  });
 
   var dom = require("ace/lib/dom");
   ace.require("ace/ext/language_tools");
@@ -832,6 +837,7 @@ $(document).ready(function(){
               if (testInst.play != undefined) {
                 console.log("function check passed");
                 if (checker.name != titleNode.html()) {
+                  console.log("removing: " + titleNode.html());
                   appx.removeFDef(titleNode.html());
                   titleNode.html(checker.name);
                 }
