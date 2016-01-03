@@ -544,8 +544,9 @@ function addCodePanel(funcName, enabled) {
   // '</h1><div class="editorPanel"></div></div>';
   console.log("added div");
   $('.codeAccordion').append(newDiv)
-  $("#" + butOn).button().click({"bOn": butOn, "bOff": butOff, "funcName":funcName}, function (event) {
-    appx.enableFDef(event.data.funcName, 1);
+  $("#" + butOn).button().click({"bOn": butOn, "bOff": butOff, "row":accRowID}, function (event) {
+    appx.enableFDef($("#" + event.data.row).find("span.accHeader").html(), 1);
+    //console.log($("#" + event.data.row).find("span.accHeader").html());
     generate();
     $("#" + event.data.bOn).css({"background":"LimeGreen"});
     $("#" + event.data.bOn).css({"color":"white"});
@@ -558,9 +559,9 @@ function addCodePanel(funcName, enabled) {
   .css({"background":"LimeGreen"})
   .css({"color":"white"})
   .data("enabled","1");
-  $("#" + butOff).button().click({"bOn": butOn, "bOff": butOff, "funcName":funcName}, function (event) {
+  $("#" + butOff).button().click({"bOn": butOn, "bOff": butOff, "row":accRowID}, function (event) {
     console.log(event.data.funcName);
-    appx.enableFDef(event.data.funcName, 0);
+    appx.enableFDef($("#" + event.data.row).find("span.accHeader").html(), 0);
     generate();
     $("#" + event.data.bOff).css({"background":"OrangeRed"});
     $("#" + event.data.bOff).css({"color":"white"});
