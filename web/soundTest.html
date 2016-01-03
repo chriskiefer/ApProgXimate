@@ -190,7 +190,7 @@ function dcBlockerFunc(event) {
   for (i = 0; i < n; ++i) {
     x = inputArrayL[i];
     if (isNaN(x)) {
-      console.log("NaNs!!!");
+//      console.log("NaNs!!!");
       x=0;
     }
     if (x < -1) {
@@ -321,65 +321,65 @@ function init() {
     }\n \
   }\n", 1, 99999);
 
-  appx.addFuncDef("square", "function square() {\n \
-    this.osc = new Module.maxiOsc();\n \
-    this.play = function(j0) {\n \
-      return this.osc.square(Module.maxiMap.linexp(j0,-1,1,20,20000));\n \
-    }\n \
-  }\n", 1, 99999);
-
-  appx.addFuncDef("lfsquare", "function lfsquare() {\n \
-    this.osc = new Module.maxiOsc();\n \
-    this.play = function(j0) {\n \
-      return this.osc.square(Module.maxiMap.linexp(j0,-1,1,0.01,15));\n \
-    }\n \
-  }\n", 1, 99999);
-
-  appx.addFuncDef("lpf", "function lpf() {\n \
-    this.filter = new Module.maxiFilter();\n \
-    this.play = function(j0,j1) {\n \
-      return this.filter.lopass(j0, (j1 + 1) / 2);\n \
-    }\n \
-  }\n", 2, 99999);
-  appx.addFuncDef("lpfz", "function lpfz() {\n \
-     this.filter = new Module.maxiFilter();\n \
-     this.play = function(j0,j1,j2) {\n \
-         return this.filter.lores(j0, Module.maxiMap.linexp(j1,-1,1,20,10000), Module.maxiMap.linlin(j2, -1, 1, 1, 5));\n \
-     }\n \
-  }\n", 3, 99999);
-
-  appx.addFuncDef("hpf", "function hpf() {\n \
-     this.filter = new Module.maxiFilter();\n \
-     this.play = function(j0,j1) {\n \
-         return this.filter.hipass(j0, (j1 + 1) / 2);\n \
-     }\n \
-  }\n", 2, 99999);
-
-  appx.addFuncDef("gate", "function gate() {\n \
-    this.filter = new Module.maxiFilter();\n \
-    this.ampctl = 0; \
-    this.play = function(j0,j1, j2) {\n \
-      var w; \
-      w = this.filter.lopass(j1 > j2 ? 1 : 0 , 0.5); \
-      return w * j0;\n \
-    }\n \
-  }\n", 3, 99999);
-
-
-  appx.addFuncDef("tanh_", "function tanh_() {\n \
-    this.play = function(j0) {\n \
-      return Math.tanh(j0);\n \
-    }\n \
-  }\n", 1, 99999);
-
-  appx.addFuncDef("samp", "\
-function samp() { \n\
-	this.dsp = new Module.maxiSample();  \n\
-	this.dsp.load('samples/distortedkick10.wav',0);\n\
- 	this.play = function(j0) \n{ \
- 		return this.dsp.play(1.0); \n\
- 	} \n\
- }",1,99999)
+//   appx.addFuncDef("square", "function square() {\n \
+//     this.osc = new Module.maxiOsc();\n \
+//     this.play = function(j0) {\n \
+//       return this.osc.square(Module.maxiMap.linexp(j0,-1,1,20,20000));\n \
+//     }\n \
+//   }\n", 1, 99999);
+//
+//   appx.addFuncDef("lfsquare", "function lfsquare() {\n \
+//     this.osc = new Module.maxiOsc();\n \
+//     this.play = function(j0) {\n \
+//       return this.osc.square(Module.maxiMap.linexp(j0,-1,1,0.01,15));\n \
+//     }\n \
+//   }\n", 1, 99999);
+//
+//   appx.addFuncDef("lpf", "function lpf() {\n \
+//     this.filter = new Module.maxiFilter();\n \
+//     this.play = function(j0,j1) {\n \
+//       return this.filter.lopass(j0, (j1 + 1) / 2);\n \
+//     }\n \
+//   }\n", 2, 99999);
+//   appx.addFuncDef("lpfz", "function lpfz() {\n \
+//      this.filter = new Module.maxiFilter();\n \
+//      this.play = function(j0,j1,j2) {\n \
+//          return this.filter.lores(j0, Module.maxiMap.linexp(j1,-1,1,20,10000), Module.maxiMap.linlin(j2, -1, 1, 1, 5));\n \
+//      }\n \
+//   }\n", 3, 99999);
+//
+//   appx.addFuncDef("hpf", "function hpf() {\n \
+//      this.filter = new Module.maxiFilter();\n \
+//      this.play = function(j0,j1) {\n \
+//          return this.filter.hipass(j0, (j1 + 1) / 2);\n \
+//      }\n \
+//   }\n", 2, 99999);
+//
+//   appx.addFuncDef("gate", "function gate() {\n \
+//     this.filter = new Module.maxiFilter();\n \
+//     this.ampctl = 0; \
+//     this.play = function(j0,j1, j2) {\n \
+//       var w; \
+//       w = this.filter.lopass(j1 > j2 ? 1 : 0 , 0.5); \
+//       return w * j0;\n \
+//     }\n \
+//   }\n", 3, 99999);
+//
+//
+//   appx.addFuncDef("tanh_", "function tanh_() {\n \
+//     this.play = function(j0) {\n \
+//       return Math.tanh(j0);\n \
+//     }\n \
+//   }\n", 1, 99999);
+//
+//   appx.addFuncDef("samp", "\
+// function samp() { \n\
+// 	this.dsp = new Module.maxiSample();  \n\
+// 	this.dsp.load('samples/distortedkick10.wav',0);\n\
+//  	this.play = function(j0) \n{ \
+//  		return this.dsp.play(1.0); \n\
+//  	} \n\
+//  }",1,99999)
 
   // appx.addFuncDef("gwrite", "function gwrite() {\n \
   //    this.play = function(j0, j1) {\n \
@@ -397,32 +397,32 @@ function samp() { \n\
   //        return globalMemory[index];\n \
   //    }\n \
   // }\n", 1, 99999);
-  appx.addFuncDef("gwr1", "function gwr1() {\n \
-    this.play = function(j0) {\n \
-      globalMemory[0] = Math.tanh(globalMemory[0] + (j0)); \
-      return j0;\n \
-    }\n \
-  }\n", 1, 99999);
-
-  appx.addFuncDef("gr1", "function gr1() {\n \
-    this.play = function(j0) {\n \
-      return globalMemory[0] * j0;\n \
-    }\n \
-  }\n", 1, 99999);
-
-  appx.addFuncDef("seq", "function seq() {\n \
-    this.vals = [1,9,4,-6,3]; \
-    this.idx = 0; \
-    this.last =0; \
-     this.play = function(j0) {\n \
-         if (this.last < 0 && j0 >= 0) {\
-           this.idx++; \
-           if (this.idx == this.vals.length) this.idx = 0; \
-         } \
-         this.last = j0; \
-         return this.vals[this.idx] / 10.0;\n \
-     }\n \
-  }\n", 1, 99999);
+  // appx.addFuncDef("gwr1", "function gwr1() {\n \
+  //   this.play = function(j0) {\n \
+  //     globalMemory[0] = Math.tanh(globalMemory[0] + (j0)); \
+  //     return j0;\n \
+  //   }\n \
+  // }\n", 1, 99999);
+  //
+  // appx.addFuncDef("gr1", "function gr1() {\n \
+  //   this.play = function(j0) {\n \
+  //     return globalMemory[0] * j0;\n \
+  //   }\n \
+  // }\n", 1, 99999);
+  //
+  // appx.addFuncDef("seq", "function seq() {\n \
+  //   this.vals = [1,9,4,-6,3]; \
+  //   this.idx = 0; \
+  //   this.last =0; \
+  //    this.play = function(j0) {\n \
+  //        if (this.last < 0 && j0 >= 0) {\
+  //          this.idx++; \
+  //          if (this.idx == this.vals.length) this.idx = 0; \
+  //        } \
+  //        this.last = j0; \
+  //        return this.vals[this.idx] / 10.0;\n \
+  //    }\n \
+  // }\n", 1, 99999);
 
 
   gene = new Module.FloatVector();
@@ -502,7 +502,7 @@ function updateCanvas() {
   //   ctx.moveTo((c.width/2) + ((c.width/2) * w), (i*bHeight) + (bHeight/2));
   // }
   var sx,sy;
-  sx = (c.width/2) + ((c.width/3) * ((gene.get(0) * 2) - 1));
+  sx = (c.width/2) + ((c.width/2) * ((gene.get(0) * 2) - 1));
   sy = bHeight / 2;
   ctx.moveTo(sx,sy);
   var mod = 1;
@@ -510,7 +510,7 @@ function updateCanvas() {
     var w = gene.get(i);
     ctx.strokeStyle = "rgba(" + Math.floor(w * 255.0) + ",0," + (255 - Math.floor(w * 100.0)) +", 0.4)";
     w = (w * 2) - 1;
-    var nx = (c.width/2) + ((c.width/3) * w);
+    var nx = (c.width/2) + ((c.width/2) * w);
     var ny = (i*bHeight) + (bHeight/2);
     //ctx.strokeRect(c.width/2,(i*bHeight) + 1,(c.width/2) * w, (bHeight - 2));
     ctx.strokeRect(nx - (bHeight/2), ny - (bHeight/2), bHeight, bHeight);
@@ -535,37 +535,44 @@ function addCodePanel(funcName, enabled) {
   var butOff='button' + accordionID + 'b';
   var accRowID = 'accRow' + accordionID;
   var newDiv = '<div id="' + accRowID + '"><h1><span class="accHeader">' + funcName +
-  '</span><div id="onOffRadioSet' + accordionID + '" class="onOffRadios"><button id="' + butDel + '" class="delButton">Delete</button><button id="' + butOn + '">On</button><button id="' + butOff + '">Off</button>' +
+  '</span><div id="onOffRadioSet' + accordionID + '" class="onOffRadios"><button id="' + butDel + '" class="delButton">Delete</button><button data-enabled="1" id="' + butOn + '" class="onButton">On</button><button data-enabled="1" id="' + butOff + '" class="offButton">Off</button>' +
   '</div>' +
   '</h1><div class="editorPanel"></div></div>';
   // var newDiv = '<div><h1><span class="accHeader">' + functionNames.get(i) +
   // '</span><div id="funcdata" data-name="' + functionNames.get(i) +'" style="display:none"></div><div id="onOffRadioSet' + i + '" class="onOffRadios"><button id="' + butOn + '">On</button><button id="' + butOff + '">Off</button>' +
   // '</div>' +
   // '</h1><div class="editorPanel"></div></div>';
+  console.log("added div");
   $('.codeAccordion').append(newDiv)
   $("#" + butOn).button().click({"bOn": butOn, "bOff": butOff, "funcName":funcName}, function (event) {
     appx.enableFDef(event.data.funcName, 1);
     generate();
     $("#" + event.data.bOn).css({"background":"LimeGreen"});
     $("#" + event.data.bOn).css({"color":"white"});
+    $("#" + event.data.bOn).data("enabled","1");
     $("#" + event.data.bOff).css({"background":"white"});
     $("#" + event.data.bOff).css({"color":"black"});
+    $("#" + event.data.bOff).data("enabled","0");
     return false;
   })
   .css({"background":"LimeGreen"})
-  .css({"color":"white"});
+  .css({"color":"white"})
+  .data("enabled","1");
   $("#" + butOff).button().click({"bOn": butOn, "bOff": butOff, "funcName":funcName}, function (event) {
     console.log(event.data.funcName);
     appx.enableFDef(event.data.funcName, 0);
     generate();
     $("#" + event.data.bOff).css({"background":"OrangeRed"});
     $("#" + event.data.bOff).css({"color":"white"});
+    $("#" + event.data.bOff).data("enabled","1");
     $("#" + event.data.bOn).css({"background":"white"});
     $("#" + event.data.bOn).css({"color":"black"});
+    $("#" + event.data.bOn).data("enabled","0");
     return false;
   })
   .css({"background":"white"})
-  .css({"color":"black"});
+  .css({"color":"black"})
+  .data("enabled","0");
   $("#" + butDel).button().click({"funcName":funcName}, function (event) {
     console.log("del: " + event.data.funcName);
     console.log($('#' + accRowID));
@@ -582,8 +589,10 @@ function addCodePanel(funcName, enabled) {
   if(!enabled) {
     $("#" + butOff).css({"background":"OrangeRed"});
     $("#" + butOff).css({"color":"white"});
+    $("#" + butOff).data("enabled","1");
     $("#" + butOn).css({"background":"white"});
     $("#" + butOn).css({"color":"black"});
+    $("#" + butOn).data("enabled","0");
   }
   accordionID++;
 }
@@ -630,7 +639,7 @@ $(document).ready(function(){
       newSnap.funcsEnabled[i] = appx.isEnabled(functionNames.get(i));
     }
     snapShots[newSnap.title] = newSnap;
-    localStorage.setItem('snapshot', JSON.stringify(newSnap));
+    //localStorage.setItem('snapshot', JSON.stringify(newSnap));
     localStorage.setItem('snapshots', JSON.stringify(snapShots));
     console.log(JSON.parse(localStorage.getItem('snapshot')));
     console.log(snapShots);
@@ -687,7 +696,7 @@ $(document).ready(function(){
         var snap = snapShots[$(this).data().name]; //JSON.parse(localStorage.getItem('snapshot'));
         console.log(snap);
         for(i=0; i < snap.funcs.length; i++) {
-    //      console.log(snap.funcs[i]);
+          console.log(snap.funcs[i]);
           eval("var checker = " + snap.funcs[i]);
           if(checker.length==0) {
             console.log(checker.name);
@@ -828,8 +837,14 @@ $(document).ready(function(){
                 }
                 var numArgs = testInst.play.length;
                 console.log(numArgs);
+                console.log(ui.newHeader.find("button.onButton").data("enabled"));
+                console.log(ui.newHeader.find("button.offButton").data("enabled"));
                 appx.addFuncDef(checker.name, edi.getValue(), numArgs, 99999);
-                generate();
+                if (ui.newHeader.find("button.onButton").data("enabled")==0) {
+                    appx.enableFDef(checker.name, false);
+                }else{
+                    generate();
+                }
               }else{
                 console.log("function check failed");
               }

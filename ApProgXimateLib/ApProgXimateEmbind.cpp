@@ -28,6 +28,43 @@ using namespace emscripten;
 
 #include "maximilian.h"
 
+class maxiTrig {
+public:
+    maxiTrig() : prev(0) {
+    }
+    double waitZeroX(double w) {
+        bool trig = prev < 0 && w >= 0;
+        prev = w;
+        return trig ? 1 : 0;
+    }
+    double waitBoundX(double w, double boundary) {
+        bool trig = prev < boundary && w >= boundary;
+        prev = w;
+        return trig ? 1 : 0;
+    }
+    double waitRangeX(double w, double boundaryLow, double boundaryHigh) {
+        bool trig = prev < boundaryLow && w >= boundaryHigh;
+        prev = w;
+        return trig ? 1 : 0;
+    }
+private:
+    double prev;
+};
+
+class maxiSampleHold {
+public:
+    maxiSampleHold() : value(0) {
+    }
+    bool play(double w, double trig) {
+        if (trig > 0.9) {
+            value = w;
+        }
+        return value;
+    }
+private:
+    double value;
+};
+
 
 EMSCRIPTEN_BINDINGS(my_module) {
     
@@ -37,6 +74,17 @@ EMSCRIPTEN_BINDINGS(my_module) {
     .class_function("setup", &maxiSettings::setup)
     ;
     
+    class_<maxiTrig>("maxiTrig")
+    .constructor<>()
+    .function("waitZeroX", &maxiTrig::waitZeroX)
+    .function("waitBoundX", &maxiTrig::waitBoundX)
+    .function("waitRangeX", &maxiTrig::waitRangeX)
+    ;
+
+    class_<maxiSampleHold>("maxiSampleHold")
+    .constructor<>()
+    .function("play", &maxiSampleHold::play)
+    ;
     
     class_<maxiOsc>("maxiOsc")
     .constructor<>()
