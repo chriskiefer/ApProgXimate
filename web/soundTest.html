@@ -559,21 +559,29 @@ $(document).ready(function(){
         console.log(snap);
         for(i=0; i < snap.funcs.length; i++) {
           console.log(snap.funcs[i]);
-          eval("var checker = " + snap.funcs[i]);
-          if(checker.length==0) {
-            console.log(checker.name);
-            var testInst = new checker();
-            if (testInst.play != undefined) {
-              console.log("function check passed");
-              var numArgs = testInst.play.length;
-              appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
-              appx.enableFDef(checker.name, snap.funcsEnabled[i]);
-              addCodePanel(checker.name, snap.funcsEnabled[i]);
+          try {
+            eval("var checker = " + snap.funcs[i]);
+            if(checker.length==0) {
+              console.log(checker.name);
+              var testInst = new checker();
+              if (testInst.play != undefined) {
+                console.log("function check passed");
+                var numArgs = testInst.play.length;
+                appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
+                appx.enableFDef(checker.name, snap.funcsEnabled[i]);
+                addCodePanel(checker.name, snap.funcsEnabled[i]);
+              }else{
+                console.log("function check failed");
+              }
             }else{
               console.log("function check failed");
             }
-          }else{
-            console.log("function check failed");
+          } catch (e) {
+            if (e instanceof SyntaxError) {
+              console.log(e.message);
+            } else {
+              console.log( e );
+            }
           }
         };
         $('.codeAccordion').accordion("refresh");
