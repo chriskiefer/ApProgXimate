@@ -183,12 +183,15 @@ EMSCRIPTEN_BINDINGS(my_module) {
     .function("getFunctionNames", &apProgXimateJS::getFunctionNames)
     .function("getCode", &apProgXimateJS::getCode)
     .function("isEnabled", &apProgXimateJS::isEnabled)
+    .function("test", &apProgXimateJS::test)
     ;
     
 
     register_vector<float>("FloatVector");
     register_vector<unsigned int>("UnsignedIntVector");
     register_vector<std::string>("StringVector");
+    register_map<std::string, std::string>("StringMap");
+    
 
     
     

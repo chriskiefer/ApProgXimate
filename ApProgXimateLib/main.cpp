@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include "ApProgXimate.hpp"
+#include <random>
 using namespace std;
 
 void glslGen() {
@@ -39,17 +40,23 @@ void glslGen() {
     
     apx.collectDataTypes();
     
-    
+    std::vector<std::string> geneInfo;
     std::vector<float> gene;
     for(int i=0; i < 50; i++) {
         gene.push_back(static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
     }
     
-    std::string code = apx.genCode(gene);
+    std::string code = apx.genCode(gene, geneInfo);
     
 }
 
 int main(int argc, const char * argv[]) {
+    srand((unsigned int)time(NULL));
+//    int x = rand();
+//    for(int i=0; i < 100; i++) {
+//        x += rand();
+//    }
+//    cout << x << endl;
     std::cout << "ApProgXimate Programming!\n";
     
     apProgXimateJS apx;
@@ -126,28 +133,36 @@ int main(int argc, const char * argv[]) {
 //                        ,
 //                        1, (unsigned int[]) {JS_VAR}, JS_VAR)
 //                   );
-    apx.enableFDef("add", false);
-    apx.removeFDef("pow");
-
-    std::vector<std::string> funcNames;
-    apx.getFunctionNames(funcNames);
-    for(auto it=funcNames.begin(); it != funcNames.end(); ++it) {
-        cout << *it << endl;
-    }
-
-    apx.collectDataTypes();
-    
-    
+//    apx.enableFDef("add", false);
+//    apx.removeFDef("pow");
+//
+//    std::vector<std::string> funcNames;
+//    apx.getFunctionNames(funcNames);
+//    for(auto it=funcNames.begin(); it != funcNames.end(); ++it) {
+//        cout << *it << endl;
+//    }
+//
+//    apx.collectDataTypes();
+//    
+//
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0, 1);
     std::vector<float> gene;
     for(int i=0; i < 10; i++) {
-        gene.push_back(static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+//        float val = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        float val = dis(gen);
+//        cout << val << endl;
+        gene.push_back(val);
     }
-    std::string code = apx.genCode(gene);
-    std::cout << code << std::endl;
+    std::string code;
+//    code = apx.genCode(gene);
+//    std::cout << code << std::endl;
     
     apx.enableFDef("add", true);
     apx.collectDataTypes();
-    code = apx.genCode(gene);
+    std::vector<std::string> geneInfo;
+    code = apx.genCode(gene, geneInfo);
     std::cout << code << std::endl;
     return 0;
 }

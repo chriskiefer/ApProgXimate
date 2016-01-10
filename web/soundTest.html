@@ -454,6 +454,9 @@ function addCodePanel(funcName, enabled) {
   accordionID++;
 }
 
+function saveSnapshots() {
+  localStorage.setItem('snapshots', JSON.stringify(snapShots));
+}
 $(document).ready(function(){
   init();
   var apxlayout = $("body").layout({applyDemoStyles:true, resizeable: true, west_minSize: 100, east_minSize: 300});
@@ -502,7 +505,8 @@ $(document).ready(function(){
     }
     snapShots[newSnap.title] = newSnap;
     //localStorage.setItem('snapshot', JSON.stringify(newSnap));
-    localStorage.setItem('snapshots', JSON.stringify(snapShots));
+    //localStorage.setItem('snapshots', JSON.stringify(snapShots));
+    saveSnapshots();
     console.log(JSON.parse(localStorage.getItem('snapshot')));
     console.log(snapShots);
     $('#saveSnapPopup').popup('hide');
@@ -524,8 +528,8 @@ $(document).ready(function(){
   $("#loadSnapButton").button()
   .click(function() {
     $('#loadSnapPopup').empty().append('<div>Load Scene<!--<div style="float:right;"><button class="my_popup_close" >Close</button></div>--></div>');
-    snapShots = JSON.parse(localStorage.getItem('snapshots'));
-    console.log(snapShots);
+    //snapShots = JSON.parse(localStorage.getItem('snapshots'));
+    //console.log(snapShots);
     buttonIdx = 0;
     for(e in snapShots) {
       console.log(snapShots[e]);
@@ -560,6 +564,7 @@ $(document).ready(function(){
         for(i=0; i < snap.funcs.length; i++) {
           console.log(snap.funcs[i]);
           try {
+            console.log("checking");
             eval("var checker = " + snap.funcs[i]);
             if(checker.length==0) {
               console.log(checker.name);
@@ -577,6 +582,7 @@ $(document).ready(function(){
               console.log("function check failed");
             }
           } catch (e) {
+            console.log("error");
             if (e instanceof SyntaxError) {
               console.log(e.message);
             } else {

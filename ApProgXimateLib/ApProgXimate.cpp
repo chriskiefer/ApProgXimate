@@ -96,53 +96,70 @@ void apProgXimate::removeFDef(std::string name) {
     funcDefs.erase(name);
 }
 
-void apProgXimate::geneToTree(std::vector<float> &gene, vector<vector<std::string> > &dataTypeFuncs) {
+void apProgXimate::geneToTree(std::vector<float> &gene, vector<vector<std::string> > &dataTypeFuncs, std::vector<std::string> &geneInfo) {
     int genePos = 0;
     unsigned int nodeId=0;
     while(genePos < gene.size()) {
-        //choose a function
-        //        cout << gene[genePos] << endl;
+        //--choose where to put the next function
         int constToReplace = 0;
-        codeTreeNode *constParent;
+        codeTreeNode *constParent = NULL;
         unsigned int searchForDataType;
+        float funcChoice;
+        int funcGenePos;
         if (root == NULL) {
+            //first one?
             searchForDataType = getFirstDataType();
+            funcChoice = gene[genePos];
+            
+//            geneInfo[genePos] = string("root ").append(std::to_string(funcChoice));
+            funcGenePos = genePos;
+            genePos++;
         }else{
+            //otherwise choose a constant to replace
             constToReplace = floor(gene[genePos] * constNodes.size() * 0.99999);
             constParent = constNodes[constToReplace].parent;
             searchForDataType = ((codeNode*)constParent)->funcDef->argTypes[constNodes[constToReplace].idx];
+            funcChoice = static_cast<constNode*>(constParent->paramNodes[constNodes[constToReplace].idx])->value;
+            funcGenePos = constParent->paramNodes[constNodes[constToReplace].idx]->fromGenePos;
+            geneInfo[genePos] = "pos";
             genePos++;
         }
+        
+        //--choose a function
         vector<std::string> *fMap = &dataTypeFuncs[searchForDataType];
-        int functionIndex = floor(gene[genePos] * fMap->size() * 0.99999);
-        //functionIndex = fMap->at(functionIndex);
+//        int functionIndex = floor(gene[genePos] * fMap->size() * 0.99999);
+        int functionIndex = floor(funcChoice * fMap->size() * 0.99999);
         string fdefName = fMap->at(functionIndex);
-//        fdef* newFunc = &funcDefs[functionIndex];
         fdef* newFunc = &funcDefs[fdefName];
-        if(genePos + newFunc->argTypes.size() + 1 < gene.size()) {
-            if (root != NULL) {
-            }
+//        geneInfo[genePos] = fdefName;
+//        genePos++;
+        if(genePos + newFunc->argTypes.size() - 1 < gene.size()) {
+            //make new constant nodes
             codeNode *newCodeNode = new codeNode();
             newCodeNode->funcDef = newFunc;
             newCodeNode->id = nodeId++;
+            newCodeNode->fromGenePos = funcGenePos;
             for(int p=0; p < newFunc->argTypes.size(); p++) {
                 constNode *newConstNode = new constNode();
                 newConstNode->id = nodeId++;
-                genePos++;
                 newConstNode->value = gene[genePos];
                 newConstNode->dType = newFunc->argTypes[p];
+                newConstNode->fromGenePos = genePos;
                 newCodeNode->paramNodes.push_back(newConstNode);
                 constNodeDescriptor newDesc;
                 newDesc.parent = newCodeNode;
                 newDesc.idx = p;
                 constNodes.push_back(newDesc);
+//                geneInfo[genePos] = std::to_string(2*(gene[genePos]-0.5));
                 //limited function?
                 //                funcDefs[functionIndex].count--;
                 //                if(funcDefs[functionIndex].count == 0) {
                 //                    funcIndexMap.erase(find(funcIndexMap.begin(), funcIndexMap.end(), functionIndex));
                 //                    cout << "Removed function: " << funcDefs[functionIndex].functionName << endl;
                 //                }
+                genePos++;
             }
+            //put the new function in the tree
             if (root == NULL) {
                 root = newCodeNode;
             }else{
@@ -155,7 +172,6 @@ void apProgXimate::geneToTree(std::vector<float> &gene, vector<vector<std::strin
             break;
         }
     }
-    
 }
 
 unsigned int apProgXimate::getFirstDataType() {
@@ -217,7 +233,7 @@ void apProgXimateGLSL::dataTypeToCode(unsigned int dataType, std::stringstream &
 }
 
 
-std::string apProgXimateGLSL::genCode(std::vector<float> &gene, bool clear) {
+std::string apProgXimateGLSL::genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, bool clear) {
     if (clear) {
         clearTree();
     }
@@ -256,7 +272,7 @@ std::string apProgXimateGLSL::genCode(std::vector<float> &gene, bool clear) {
     "\tp = gl_FragCoord.xy / resolution.xy;\n"
     "\tvec3 col =";
     
-    geneToTree(gene, dataTypeFuncs);
+    geneToTree(gene, dataTypeFuncs, geneInfo);
     
     traverse(root, code);
     
@@ -302,7 +318,7 @@ void apProgXimateJS::dataTypeToCode(unsigned int dataType, std::stringstream &co
 }
 
 
-std::string apProgXimateJS::genCode(std::vector<float> &gene, bool clear) {
+std::string apProgXimateJS::genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, bool clear) {
     if (clear) {
         clearTree();
     }
@@ -327,10 +343,16 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, bool clear) {
 //        code << funcDefs[i].functionDef << endl;
 //    }
     
+    geneInfo.resize(gene.size(), "");
     
-    geneToTree(gene, dataTypeFuncs);
+    geneToTree(gene, dataTypeFuncs, geneInfo);
     
-    traverseJS(root, codeDecls, codeBody, codeCleanup);
+    traverseJS(root, codeDecls, codeBody, codeCleanup, geneInfo);
+    
+    for(int i=0; i < gene.size(); i++) {
+        printf("%d: %s\n", i, geneInfo[i].c_str());
+    }
+
     
     code << codeDecls.str() << endl;
     code << "function approxRenderer() {\n"
@@ -355,19 +377,22 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, bool clear) {
     return code.str();
 }
 
-void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::stringstream &codeBody, std::stringstream &cleanupCode, int level) {
+void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::stringstream &codeBody, std::stringstream &cleanupCode, std::vector<std::string> &geneInfo, int level) {
     if (node->isConst()) {
-        dataTypeToCode(((constNode*)node)->dType, codeBody, (((constNode*)node)->value-0.5) * 2);
+        float constValue =(((constNode*)node)->value-0.5) * 2;
+        dataTypeToCode(((constNode*)node)->dType, codeBody, constValue);
+        geneInfo[node->fromGenePos] = std::to_string(constValue);
     }else{
         codeBody << endl;
         stringstream varName;
         varName << ((codeNode*)node)->funcDef->functionName << ((codeNode*)node)->id;
+        geneInfo[node->fromGenePos] = varName.str();
         codeDecls << "var " << varName.str() << " = new " << ((codeNode*)node)->funcDef->functionName << "();\n";
         cleanupCode << "\t_dispose(" << varName.str() << ");\n";
         for(int i=0; i <= level; i++) codeBody << "\t";
         codeBody << varName.str() << ".play(";
         for(int i=0; i < node->paramNodes.size(); i++) {
-            traverseJS(node->paramNodes[i], codeDecls, codeBody, cleanupCode, level+1);
+            traverseJS(node->paramNodes[i], codeDecls, codeBody, cleanupCode, geneInfo, level+1);
             if (i+1 < node->paramNodes.size()) {
                 codeBody << ", ";
             }
@@ -376,6 +401,8 @@ void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls
         for(int i=0; i <= level; i++) codeBody << "\t";
         codeBody << ")";
     }
+    
+
 };
 
 void apProgXimateJS::addFuncDef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int lim) {

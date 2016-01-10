@@ -1,3 +1,14 @@
+function linlin(j0,j1,j2) {
+  return Module.maxiMap.linlin(j0, -1, 1, j1, j2);
+}
+function linexp(j0,j1,j2) {
+  return Module.maxiMap.linexp(j0, -1, 1, j1, j2);
+}
+function seq() {
+  function next(trig) {
+
+  }
+}
 function loadDefaultFunctions() {
   appx.addFuncDef("add", "function add() {\n \
     this.play = function(j1, j2) {\n \
