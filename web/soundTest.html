@@ -259,11 +259,15 @@ function _dispose(x){
   }
 }
 
+var geneInfo = new Module.StringVector();
 
 function generate() {
   preGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.01);
   appx.collectDataTypes();
-  code = appx.genCode(gene, true);
+  code = appx.genCode(gene, geneInfo, true);
+  for(i=0; i < geneInfo.size(); i++) {
+    console.log(geneInfo.get(i));
+  }
   for(i=0; i < GLOBALMEMSIZE; i++) {
     globalMemory[i] = 0;
   }
