@@ -45,8 +45,8 @@ void glslGen() {
     for(int i=0; i < 50; i++) {
         gene.push_back(static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
     }
-    
-    std::string code = apx.genCode(gene, geneInfo);
+    std::vector<unsigned int> constIndexes;
+    std::string code = apx.genCode(gene, geneInfo, constIndexes);
     
 }
 
@@ -162,7 +162,12 @@ int main(int argc, const char * argv[]) {
     apx.enableFDef("add", true);
     apx.collectDataTypes();
     std::vector<std::string> geneInfo;
-    code = apx.genCode(gene, geneInfo);
+    std::vector<unsigned int> constIndexes;
+    code = apx.genCode(gene, geneInfo,constIndexes);
+    for(int i=0; i < constIndexes.size(); i++) {
+        cout << constIndexes[i] << ",";
+    }
+    cout << endl;
     std::cout << code << std::endl;
     return 0;
 }

@@ -233,7 +233,7 @@ void apProgXimateGLSL::dataTypeToCode(unsigned int dataType, std::stringstream &
 }
 
 
-std::string apProgXimateGLSL::genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, bool clear) {
+std::string apProgXimateGLSL::genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, std::vector<unsigned int> &constIndexes, bool clear) {
     if (clear) {
         clearTree();
     }
@@ -318,7 +318,7 @@ void apProgXimateJS::dataTypeToCode(unsigned int dataType, std::stringstream &co
 }
 
 
-std::string apProgXimateJS::genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, bool clear) {
+std::string apProgXimateJS::genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, std::vector<unsigned int> &constIndexes, bool clear) {
     if (clear) {
         clearTree();
     }
@@ -327,6 +327,7 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, std::vector<std::s
     //functions
     stringstream code, codeDecls, codeBody, codeCleanup;
     vector<float> codeConsts;
+    constIndexes.clear();
     
     for(auto it = funcDefs.begin(); it != funcDefs.end(); ++it) {
         if (it->second.enabled) {
@@ -348,7 +349,7 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, std::vector<std::s
     
     geneToTree(gene, dataTypeFuncs, geneInfo);
     
-    traverseJS(root, codeDecls, codeConsts, codeBody, codeCleanup, geneInfo);
+    traverseJS(root, codeDecls, codeConsts, codeBody, codeCleanup, constIndexes, geneInfo);
     
     for(int i=0; i < gene.size(); i++) {
         printf("%d: %s\n", i, geneInfo[i].c_str());
@@ -381,13 +382,14 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, std::vector<std::s
     return code.str();
 }
 
-void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::vector<float> &codeConsts, std::stringstream &codeBody, std::stringstream &cleanupCode, std::vector<std::string> &geneInfo, int level) {
+void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::vector<float> &codeConsts, std::stringstream &codeBody, std::stringstream &cleanupCode, std::vector<unsigned int> &constIndexes, std::vector<std::string> &geneInfo, int level) {
     if (node->isConst()) {
         float constValue =(((constNode*)node)->value-0.5) * 2;
 //        dataTypeToCode(((constNode*)node)->dType, codeBody, constValue);
         codeBody << "u[" << codeConsts.size() << "]";
         geneInfo[node->fromGenePos] = std::to_string(constValue);
         codeConsts.push_back(constValue);
+        constIndexes.push_back(node->fromGenePos);
     }else{
         codeBody << endl;
         stringstream varName;
@@ -398,7 +400,7 @@ void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls
         for(int i=0; i <= level; i++) codeBody << "\t";
         codeBody << varName.str() << ".play(";
         for(int i=0; i < node->paramNodes.size(); i++) {
-            traverseJS(node->paramNodes[i], codeDecls, codeConsts, codeBody, cleanupCode, geneInfo, level+1);
+            traverseJS(node->paramNodes[i], codeDecls, codeConsts, codeBody, cleanupCode, constIndexes, geneInfo, level+1);
             if (i+1 < node->paramNodes.size()) {
                 codeBody << ", ";
             }

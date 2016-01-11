@@ -26,7 +26,7 @@ public:
         funcDefs[f.functionName]= f;
     };
     virtual void enableFDef(std::string name, bool state);
-    virtual std::string genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, bool clear=true) = 0;
+    virtual std::string genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, std::vector<unsigned int> &constIndexes, bool clear=true) = 0;
     virtual void collectDataTypes();
     virtual void getFunctionNames(std::vector<std::string> &names);
     virtual std::string getCode(std::string functionName);
@@ -83,7 +83,7 @@ protected:
 class apProgXimateGLSL : public apProgXimate {
 public:
     apProgXimateGLSL();
-    std::string genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, bool clear=true) override;
+    std::string genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, std::vector<unsigned int> &constIndexes, bool clear=true) override;
 protected:
     std::string dataTypeToString(unsigned int t) override;
     unsigned int getFirstDataType() override;
@@ -102,7 +102,7 @@ enum JavascriptDataTypes {
 class apProgXimateJS : public apProgXimate {
 public:
     apProgXimateJS();
-    std::string genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, bool clear=true) override;
+    std::string genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, std::vector<unsigned int> &constIndexes, bool clear=true) override;
     void addFuncDef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int lim=9999999);
     void collectDataTypes() override;
     void enableFDef(std::string name, bool state) override;
@@ -118,7 +118,7 @@ protected:
     unsigned int getFirstDataType() override;
     unsigned int getNumDataTypes() override;
     void dataTypeToCode(unsigned int dataType, std::stringstream &code, float value) override;
-    void traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::vector<float> &codeConsts, std::stringstream &codeBody, std::stringstream &cleanupCode, std::vector<std::string> &geneInfo, int level=0);
+    void traverseJS(codeTreeNode *node, std::stringstream &codeDecls, std::vector<float> &codeConsts, std::stringstream &codeBody, std::stringstream &cleanupCode, std::vector<unsigned int> &constIndexes, std::vector<std::string> &geneInfo, int level=0);
 };
 
 

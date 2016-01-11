@@ -10,86 +10,26 @@
 
   <script src="apProgXimate.js"></script>
   <script src="apxFunctions.js"></script>
+  <script src="codePanel.js"></script>
   <script src="jquery-2.1.4.min.js"></script>
   <script type="text/javascript" src="jquery.layout-1.4.1.js"></script>
   <link rel="stylesheet" type="text/css" href="layout-default-latest.css" />
   <script src="jquery-ui.min.js"></script>
   <link href='jquery-ui.min.css' rel='stylesheet' type='text/css'>
+  <link href='apxStyles.css' rel='stylesheet' type='text/css'>
   <script src="Recorderjs/dist/recorder.js"></script>
   <script src="jquery-popup-overlay/jquery.popupoverlay.js"></script>
+  <script src="ace-builds/src-min/ace.js"></script>
   <style type="text/css" media="screen">
-
-  .ace_editor {
-    position: relative !important;
-    border: 1px solid lightgray;
-    margin: auto;
-    height: 100%;
-    width: 100%;
-  }
-
-  .editorPanel {
-    background: white;
-    padding: 0px;
-
-  }
-
-  .ui-accordion .ui-accordion-content {padding:0px }
-
-  #edit8 {
-    position: relative !important;
-    border: 1px solid lightgray;
-    margin: auto;
-    height: 100%;
-    width: 100%;
-  }
-
-  .ace_editor.fullScreen {
-    height: auto;
-    width: auto;
-    border: 0;
-    margin: 0;
-    position: fixed !important;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
-  }
-
-  #topButtonBar {
-    float:right;
-  }
-
-  .fullScreen {
-    overflow: hidden
-  }
-
-  .onOffRadios {
-    float: right;
-    width: auto;
-    font-size: 50%;
-  }
-
-  .ui-widget {
-    font-family: Verdana,Arial,sans-serif;
-    font-size: 0.8em;
-    font-weight: normal;
-  }
-
-  .snapDesc {
-    border-style: solid;
-    border-width: 1px;
-    padding:1em;
-  }
   /*.scrollmargin {
   height: 500px;
   text-align: center;
   }*/
-  <style type='text/css'>
+  /*<style type='text/css'>
   ul { list-style: none; }
   #recordingslist audio { display: block; margin-bottom: 10px; }
+  </style>*/
   </style>
-</style>
 
 <!-- Our javascript code -->
 <script type="text/javascript">
@@ -114,43 +54,45 @@ var globalMemory = [];
 for (i=0; i < GLOBALMEMSIZE; i++) {
   globalMemory[i] = 0;
 };
+var interfaceModes = {LISTEN:1, CREATE:2};
+var interfaceMode = interfaceModes.CREATE;
 var snapShots = {};
 if (localStorage.getItem('snapshots') != null) {
   snapShots = JSON.parse(localStorage.getItem('snapshots'));
 }
 
-var recorder;
-function startRecording(button) {
-  recorder && recorder.record();
-  button.disabled = true;
-  button.nextElementSibling.disabled = false;
-}
-function stopRecording(button) {
-  recorder && recorder.stop();
-  button.disabled = true;
-  button.previousElementSibling.disabled = false;
-
-  // create WAV download link using audio data blob
-  createDownloadLink();
-  recorder.clear();
-}
-function createDownloadLink() {
-  recorder && recorder.exportWAV(function(blob) {
-    var url = URL.createObjectURL(blob);
-    var li = document.createElement('li');
-    var au = document.createElement('audio');
-    var hf = document.createElement('a');
-
-    au.controls = true;
-    au.src = url;
-    hf.href = url;
-    hf.download = new Date().toISOString() + '.wav';
-    hf.innerHTML = hf.download;
-    li.appendChild(au);
-    li.appendChild(hf);
-    recordingslist.appendChild(li);
-  });
-}
+// var recorder;
+// function startRecording(button) {
+//   recorder && recorder.record();
+//   button.disabled = true;
+//   button.nextElementSibling.disabled = false;
+// }
+// function stopRecording(button) {
+//   recorder && recorder.stop();
+//   button.disabled = true;
+//   button.previousElementSibling.disabled = false;
+//
+//   // create WAV download link using audio data blob
+//   createDownloadLink();
+//   recorder.clear();
+// }
+// function createDownloadLink() {
+//   recorder && recorder.exportWAV(function(blob) {
+//     var url = URL.createObjectURL(blob);
+//     var li = document.createElement('li');
+//     var au = document.createElement('audio');
+//     var hf = document.createElement('a');
+//
+//     au.controls = true;
+//     au.src = url;
+//     hf.href = url;
+//     hf.download = new Date().toISOString() + '.wav';
+//     hf.innerHTML = hf.download;
+//     li.appendChild(au);
+//     li.appendChild(hf);
+//     recordingslist.appendChild(li);
+//   });
+// }
 
 function process(event) {
   //Get left/right input and output arrays
@@ -260,13 +202,14 @@ function _dispose(x){
 }
 
 var geneInfo = new Module.StringVector();
+var constIndexes = new Module.UnsignedIntVector();
 
 function generate() {
   preGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.01);
   appx.collectDataTypes();
-  code = appx.genCode(gene, geneInfo, true);
-  for(i=0; i < geneInfo.size(); i++) {
-    console.log(geneInfo.get(i));
+  code = appx.genCode(gene, geneInfo, constIndexes, true);
+  for(i=0; i < constIndexes.size(); i++) {
+    console.log(constIndexes.get(i));
   }
   for(i=0; i < GLOBALMEMSIZE; i++) {
     globalMemory[i] = 0;
@@ -281,192 +224,86 @@ function generate() {
   preGain.gain.exponentialRampToValueAtTime(1, audioCtx.currentTime + 0.1);
 }
 
-function init() {
-  loadDefaultFunctions();
-
-
-  gene = new Module.FloatVector();
-
-  for(i=0; i < GENESIZE; i++) {
-    gene.push_back(Math.random());
-  }
-
-  // $("#code").html(code.replace("\\n", "<br>"));
-
-  //analyserView1 = new AnalyserView("view1");
-  //analyserView1.initByteBuffer();
-  // $(function() {
-  //   for(i=0; i < GENESIZE; i++) {
-  //     $("<span />", {})
-  //     .appendTo("#eq");
-  //   }
-  //   idx = 0;
-  //   $( "#eq > span" ).each(function() {
-  //     $( this ).empty().slider({
-  //       min:0,
-  //       max:1,
-  //       value: gene.get(idx),
-  //       range: "min",
-  //       animate: true,
-  //       step:0.0001,
-  //       orientation: "vertical",
-  //       // change: function(event, ui) {
-  //       //   console.log(ui);
-  //       // }
-  //     });
-  //     $( this ).slider().on("slide", {idx:idx}, function(event, ui) {
-  //       console.log(event.data);
-  //       gene.set(event.data.idx, ui.value);
-  //       // code = appx.genCode(gene, true);
-  //       // console.log(code);
-  //       // jQuery.globalEval(code);
-  //       // //$("#code").html(code.replace("\\n", "<br>"));
-  //       // editor.setValue(code);
-  //       // editor.clearSelection();
-  //       generate();
-  //     });
-  //     idx++;
-  //   });
-  // });
-
-}
-
-
-// navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
-//
-// navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
-// console.log('No live audio input: ' + e);
-// });
-
-</script>
-
-<!-- load ace -->
-<script src="ace-builds/src-min/ace.js"></script>
-<script type="text/javascript">
 var edi;
 var bHeight;
+var bCount;
 var mouseIsDown;
+function configCanvas() {
+  var c = document.getElementById("eastCanvas");
+  c.height = $('#eastCanvas').height();
+  c.width = $('#eastCanvas').width();
+  var ctx = c.getContext("2d");
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0,0,c.width,c.height);
+  if (interfaceMode == interfaceModes.CREATE) {
+    bCount = GENESIZE;
+  }else{
+    bCount = constIndexes.size();
+  }
+  bHeight = c.height / bCount;
+}
 function updateCanvas() {
   var c = document.getElementById("eastCanvas");
   var ctx = c.getContext("2d");
   ctx.clearRect(0, 0, c.width, c.height);
 
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  //ctx.strokeStyle = "#333";
-  // for(i=0; i < gene.size(); i++) {
-  //   var w = gene.get(i);
-  //   ctx.strokeStyle = "rgb(" + Math.floor(w * 255.0) + ",0," + (255 - Math.floor(w * 100.0)) +")";
-  //   w = (w * 2) - 1;
-  //   //ctx.strokeRect(c.width/2,(i*bHeight) + 1,(c.width/2) * w, (bHeight - 2));
-  //   ctx.moveTo((c.width/2) + ((c.width/2) * w), (i*bHeight) + (bHeight/2));
-  // }
-  var sx,sy;
-  sx = (c.width/2) + ((c.width/2) * ((gene.get(0) * 2) - 1));
-  sy = bHeight / 2;
-  ctx.moveTo(sx,sy);
-  var mod = 1;
-  for(i=0; i < gene.size(); i++) {
-    var w = gene.get(i);
-    ctx.strokeStyle = "rgba(" + Math.floor(w * 255.0) + ",0," + (255 - Math.floor(w * 100.0)) +", 0.4)";
-    w = (w * 2) - 1;
-    var nx = (c.width/2) + ((c.width/2) * w);
-    var ny = (i*bHeight) + (bHeight/2);
-    //ctx.strokeRect(c.width/2,(i*bHeight) + 1,(c.width/2) * w, (bHeight - 2));
-    ctx.strokeRect(nx - (bHeight/2), ny - (bHeight/2), bHeight, bHeight);
-    mod = sx < nx ? 1 : -1;
-    ctx.quadraticCurveTo(sx+((sx - nx) / 2), sy+bHeight, nx, ny);
-    mod = mod * -1;
-    sx = nx;
-    sy = ny;
+  ctx.strokeStyle = "rgba(0,0,0,200)";
+  ctx.fillStyle = "rgb(0,0,0)";
+  margin = bHeight * 0.2;
+  if (interfaceMode == interfaceModes.CREATE) {
+    for(i=0; i < bCount; i++) {
+      var w = gene.get(i);
+      w = (w * 2) - 1;
+      //ctx.fillRect(c.width/2,(i*bHeight) + margin,(c.width/2) * w, (bHeight - (margin*2)));
+      ctx.strokeRect(c.width/2,(i*bHeight) + margin,(c.width/2) * w, (bHeight - (margin*2)));
+    }
+    ctx.strokeStyle = "rgba(255,0,0,200)";
+    for(i=0; i < constIndexes.size(); i++) {
+      geneIdx = constIndexes.get(i);
+      w = gene.get(geneIdx);
+      w = (w * 2) - 1;
+      //ctx.fillRect(c.width/2,(i*bHeight) + margin,(c.width/2) * w, (bHeight - (margin*2)));
+      ctx.fillRect(c.width/2,(geneIdx*bHeight) + margin,(c.width/2) * w, (bHeight - (margin*2)));
+    }
+  }else{
+    for(i=0; i < constIndexes.size(); i++) {
+      geneIdx = constIndexes.get(i);
+      w = gene.get(geneIdx);
+      w = (w * 2) - 1;
+      //ctx.fillRect(c.width/2,(i*bHeight) + margin,(c.width/2) * w, (bHeight - (margin*2)));
+      ctx.fillRect(c.width/2,(i*bHeight) + margin,(c.width/2) * w, (bHeight - (margin*2)));
+    }
   }
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = "rgba(0,0,0,1)";
-  ctx.stroke();
 }
-
-var accordionID = 0;
-function addCodePanel(funcName, enabled) {
-  //var idx = $('.codeAccordion').children().length;
-  console.log(accordionID);
-  console.log(funcName);
-  var butDel='button' + accordionID + 'del';
-  var butOn='button' + accordionID + 'a';
-  var butOff='button' + accordionID + 'b';
-  var accRowID = 'accRow' + accordionID;
-  var newDiv = '<div id="' + accRowID + '"><h1><span class="accHeader">' + funcName +
-  '</span><div id="onOffRadioSet' + accordionID + '" class="onOffRadios"><button id="' + butDel + '" class="delButton">Delete</button><button data-enabled="1" id="' + butOn + '" class="onButton">On</button><button data-enabled="1" id="' + butOff + '" class="offButton">Off</button>' +
-  '</div>' +
-  '</h1><div class="editorPanel"></div></div>';
-  // var newDiv = '<div><h1><span class="accHeader">' + functionNames.get(i) +
-  // '</span><div id="funcdata" data-name="' + functionNames.get(i) +'" style="display:none"></div><div id="onOffRadioSet' + i + '" class="onOffRadios"><button id="' + butOn + '">On</button><button id="' + butOff + '">Off</button>' +
-  // '</div>' +
-  // '</h1><div class="editorPanel"></div></div>';
-  console.log("added div");
-  $('.codeAccordion').append(newDiv)
-  $("#" + butOn).button().click({"bOn": butOn, "bOff": butOff, "row":accRowID}, function (event) {
-    appx.enableFDef($("#" + event.data.row).find("span.accHeader").html(), 1);
-    //console.log($("#" + event.data.row).find("span.accHeader").html());
-    generate();
-    $("#" + event.data.bOn).css({"background":"LimeGreen"});
-    $("#" + event.data.bOn).css({"color":"white"});
-    $("#" + event.data.bOn).data("enabled","1");
-    $("#" + event.data.bOff).css({"background":"white"});
-    $("#" + event.data.bOff).css({"color":"black"});
-    $("#" + event.data.bOff).data("enabled","0");
-    return false;
-  })
-  .css({"background":"LimeGreen"})
-  .css({"color":"white"})
-  .data("enabled","1");
-  $("#" + butOff).button().click({"bOn": butOn, "bOff": butOff, "row":accRowID}, function (event) {
-    console.log(event.data.funcName);
-    appx.enableFDef($("#" + event.data.row).find("span.accHeader").html(), 0);
-    generate();
-    $("#" + event.data.bOff).css({"background":"OrangeRed"});
-    $("#" + event.data.bOff).css({"color":"white"});
-    $("#" + event.data.bOff).data("enabled","1");
-    $("#" + event.data.bOn).css({"background":"white"});
-    $("#" + event.data.bOn).css({"color":"black"});
-    $("#" + event.data.bOn).data("enabled","0");
-    return false;
-  })
-  .css({"background":"white"})
-  .css({"color":"black"})
-  .data("enabled","0");
-  $("#" + butDel).button().click({"funcName":funcName}, function (event) {
-    console.log("del: " + event.data.funcName);
-    console.log($('#' + accRowID));
-    $('#' + accRowID).remove();
-    $('.codeAccordion').accordion("refresh");
-    appx.removeFDef(event.data.funcName);
-    generate();
-    $('.codeAccordion').find(".delButton").css({"visibility":"hidden"});
-    return false;
-  })
-  .css({"background":"white"})
-  .css({"color":"red"})
-  .css({"visibility":"hidden"});
-  if(!enabled) {
-    $("#" + butOff).css({"background":"OrangeRed"});
-    $("#" + butOff).css({"color":"white"});
-    $("#" + butOff).data("enabled","1");
-    $("#" + butOn).css({"background":"white"});
-    $("#" + butOn).css({"color":"black"});
-    $("#" + butOn).data("enabled","0");
-  }
-  accordionID++;
-}
-
 function saveSnapshots() {
   localStorage.setItem('snapshots', JSON.stringify(snapShots));
 }
 $(document).ready(function(){
-  init();
-  var apxlayout = $("body").layout({applyDemoStyles:true, resizeable: true, west_minSize: 100, east_minSize: 300});
+  loadDefaultFunctions();
+  gene = new Module.FloatVector();
+  for(i=0; i < GENESIZE; i++) {
+    gene.push_back(Math.random());
+  }
+  var apxlayout = $("body").layout({
+    applyDemoStyles:true,
+    resizeable: true,
+    west_minSize: 100,
+    east_minSize: 300,
+    onresize_end: function(name, element, state, options) {
+      // console.log(name);
+      // console.log(element);
+      // console.log(state);
+      // console.log(options);
+      if (name == "center") {
+        configCanvas();
+        updateCanvas();
+      }
+    }
+  })
+  ;
   apxlayout.sizePane("west", 400);
   apxlayout.sizePane("east", 400);
-
   $(document).on("keydown", function (e) {
       if (e.which === 8 && !$(e.target).is("input, textarea")) {
           e.preventDefault();
@@ -487,6 +324,24 @@ $(document).ready(function(){
   //     editor.resize()
   //   }
   // })
+  $("#listenButtonBar").hide();
+  $("#listenButton").button()
+  .click(function() {
+    interfaceMode = interfaceModes.LISTEN;
+    apxlayout.toggle("east");
+    apxlayout.toggle("west");
+    $("#topButtonBar").hide();
+    $("#listenButtonBar").show();
+  });
+  $("#createButton").button()
+  .click(function() {
+    interfaceMode = interfaceModes.CREATE;
+    apxlayout.toggle("east");
+    apxlayout.toggle("west");
+    $("#topButtonBar").show();
+    $("#listenButtonBar").hide();
+  });
+
   $("#saveSnapshotFormButton").button()
   .click(function() {
     console.log($('#saveSnapshotForm #snapNickName').val());
@@ -528,6 +383,10 @@ $(document).ready(function(){
       outline:true,
       transition: 'all 0.3s'
     });
+  });
+  $('#listenLoadButton').button()
+  .click(function() {
+    $("#loadSnapButton").click();
   });
   $("#loadSnapButton").button()
   .click(function() {
@@ -643,6 +502,7 @@ $(document).ready(function(){
       gene.resize(GENESIZE,0);
       randomiseGene();
       generate();
+      configCanvas();
       updateCanvas();
     }
   }).val(GENESIZE).width(30);
@@ -771,15 +631,11 @@ $(document).ready(function(){
   generate();
   initAudio();
 
-  var c = document.getElementById("eastCanvas");
-  c.height = $('#eastCanvas').height();
-  c.width = $('#eastCanvas').width();
-  var ctx = c.getContext("2d");
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0,0,c.width,c.height);
-  bHeight = c.height / GENESIZE;
+  configCanvas();
   mouseIsDown = false;
   updateCanvas();
+
+  var c = document.getElementById("eastCanvas");
   function getMousePos(canvas, evt) {
     var rect = canvas.getBoundingClientRect();
     return {
@@ -797,8 +653,28 @@ $(document).ready(function(){
   function updateGeneFromMouse(mousePos) {
     var geneIdx = Math.floor(mousePos.y / bHeight);
     var newVal = (mousePos.x / c.width);
-    gene.set(geneIdx, newVal);
-    generate();
+    if (interfaceMode == interfaceModes.CREATE) {
+      var constIdx = -1;
+      for(i=0; i < constIndexes.size(); i++) {
+        if (constIndexes.get(i) == geneIdx) {
+          constIdx = i;
+        }
+      }
+      console.log(constIdx);
+      gene.set(geneIdx, newVal);
+      if (constIdx == -1) {
+        generate();
+      }
+      else
+      {
+        u[constIdx] = newVal;
+      }
+    }else{
+      //listen mode
+      console.log(newVal);
+      gene.set(constIndexes.get(geneIdx), newVal);
+      u[geneIdx] = newVal;
+    }
     updateCanvas();
   }
   c.addEventListener('mousedown', function(evt) {
@@ -810,39 +686,45 @@ $(document).ready(function(){
 //    var mousePos = getMousePos(c, evt);
     mouseIsDown = false;
   }, false);
-
-  localStorage.setItem('test','cheese');
 });
 </script>
 
 </head>
 
 <body>
-
-
-
   <div class="ui-layout-east">
     <!-- <div style="" id="eq">
   </div>
 -->
-<pre id="editor">
-</pre>
-</div>
-<div class="ui-layout-north">ApProgXimate Audio
+    <pre id="editor">
+    </pre>
+  </div>
+  <div class="ui-layout-north">ApProgXimate Audio
   <!-- <button onclick="startRecording(this);">record</button>
   <button onclick="stopRecording(this);" disabled>stop</button>
   <ul id="recordingslist"></ul> -->
+  <div id="listenButtonBar">
+    <button id="listenLoadButton">
+      Load Scene
+    </button>
+    <button id="createButton">
+      Create
+    </button>
+  </div>
   <div id="topButtonBar">
     <button id="saveSnapButton">
-      Save Snapshot
+      Save Scene
     </button>
     <button id="loadSnapButton">
-      Load Snapshot
+      Load Scene
     </button>
     Gene Size:
     <input type="text" id="geneSizeSpinner"/>
     <button id="randButton">
       Randomise
+    </button>
+    <button id="listenButton">
+      Listen
     </button>
   </div>
 </div>
@@ -860,11 +742,14 @@ $(document).ready(function(){
   </div>
 </div>
 
-<div id="my_popup" style="background:white; padding:10px; border-box:10px; max-width:30em;">
-
-   <div><h1>Approximate Programming</h1></div>
+<div id="my_popup" style="background:white; padding:10px; border-box:10px; max-width:800px;">
+  <div>
+     <object type="text/html" data="http://validator.w3.org/" width="800px" height="600px" style="overflow:auto;border:5px ridge blue">
+     </object>
+   </div>
+   <!-- <div><h1>Approximate Programming</h1></div>
    <div><h2>What is approximate programming?</h2></div>
-   <div>Approximage programming</div>
+   <div>Approximage programming</div> -->
 
    <!-- Add an optional button to close the popup -->
    <button class="my_popup_close" >Close</button>

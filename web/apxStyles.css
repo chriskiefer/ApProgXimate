@@ -1,0 +1,65 @@
+.ace_editor {
+  position: relative !important;
+  border: 1px solid lightgray;
+  margin: auto;
+  height: 100%;
+  width: 100%;
+}
+
+.editorPanel {
+  background: white;
+  padding: 0px;
+
+}
+
+.ui-accordion .ui-accordion-content {padding:0px }
+
+#edit8 {
+  position: relative !important;
+  border: 1px solid lightgray;
+  margin: auto;
+  height: 100%;
+  width: 100%;
+}
+
+.ace_editor.fullScreen {
+  height: auto;
+  width: auto;
+  border: 0;
+  margin: 0;
+  position: fixed !important;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+#topButtonBar {
+  float:right;
+}
+#listenButtonBar {
+  float:right;
+}
+
+.fullScreen {
+  overflow: hidden
+}
+
+.onOffRadios {
+  float: right;
+  width: auto;
+  font-size: 50%;
+}
+
+.ui-widget {
+  font-family: Verdana,Arial,sans-serif;
+  font-size: 0.8em;
+  font-weight: normal;
+}
+
+.snapDesc {
+  border-style: solid;
+  border-width: 1px;
+  padding:1em;
+}
