@@ -47,7 +47,7 @@ var masterLPF=0;
 var analyser;
 var analyserView1;
 var gene;
-var GENESIZE = 50;
+var INITGENESIZE = 50;
 var editor;
 var GLOBALMEMSIZE=10;
 var globalMemory = [];
@@ -149,7 +149,7 @@ function dcBlockerFunc(event) {
 // }
 
 function randomiseGene() {
-  for(i=0; i < GENESIZE; i++) {
+  for(i=0; i < gene.size(); i++) {
     gene.set(i,Math.random());
   }
 }
@@ -236,7 +236,7 @@ function configCanvas() {
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0,0,c.width,c.height);
   if (interfaceMode == interfaceModes.CREATE) {
-    bCount = GENESIZE;
+    bCount = gene.size();
   }else{
     bCount = constIndexes.size();
   }
@@ -290,7 +290,7 @@ $(document).ready(function(){
   $("#includeDocs").load("docs.html");
   loadDefaultFunctions();
   gene = new Module.FloatVector();
-  for(i=0; i < GENESIZE; i++) {
+  for(i=0; i < INITGENESIZE; i++) {
     gene.push_back(Math.random());
   }
   var apxlayout = $("body").layout({
@@ -357,9 +357,9 @@ $(document).ready(function(){
     newSnap.nickName = $('#saveSnapshotForm #snapNickName').val();
     newSnap.title = $('#saveSnapshotForm #snapTitle').val()
     newSnap.desc = $('#saveSnapshotForm #snapDesc').val()
-    newSnap.geneSize = GENESIZE;
-    newSnap.gene = new Array(GENESIZE);
-    for(i=0; i < GENESIZE; i++) newSnap.gene[i] = gene.get(i);
+    newSnap.geneSize = gene.size();
+    newSnap.gene = new Array(gene.size());
+    for(i=0; i < gene.size(); i++) newSnap.gene[i] = gene.get(i);
 //    var numFuncs = $('.codeAccordion').children().length;
 
     functionNames = new Module.StringVector();
@@ -385,6 +385,9 @@ $(document).ready(function(){
   $("#saveSnapButton").button()
   .click(function() {
     console.log("saveSnap");
+    $('#saveSnapshotForm #snapNickName').val("");
+    $('#saveSnapshotForm #snapTitle').val("")
+    $('#saveSnapshotForm #snapDesc').val("")
     $('#saveSnapPopup').popup({
       autoopen:true,
       color:'white',
@@ -462,12 +465,13 @@ $(document).ready(function(){
           }
         };
         $('.codeAccordion').accordion("refresh");
-
         gene.resize(snap.geneSize, 0);
         for(i=0; i < snap.geneSize; i++) {
           gene.set(i, snap.gene[i]);
         }
+        $("#geneSizeSpinner").spinner().val(gene.size());
         generate();
+        configCanvas();
         updateCanvas();
         $('#loadSnapPopup').popup('hide');
       });
@@ -507,14 +511,13 @@ $(document).ready(function(){
     max:1000,
     //todo: handle text editing here
     spin: function(ev, ui) {
-      GENESIZE = ui.value;
-      gene.resize(GENESIZE,0);
+      gene.resize(ui.value,0);
       randomiseGene();
       generate();
       configCanvas();
       updateCanvas();
     }
-  }).val(GENESIZE).width(30);
+  }).val(gene.size()).width(30);
   //$("#geneSizeSpinner").value(10);
   $("#addCodeButton").button()
   .click(function() {
