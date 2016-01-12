@@ -280,6 +280,14 @@ function saveSnapshots() {
   localStorage.setItem('snapshots', JSON.stringify(snapShots));
 }
 $(document).ready(function(){
+
+  (window.chrome == undefined) && $("#browserCheckPopup").popup('show');
+  $("#closeBrowserPopupButton").button()
+  .click(function() {
+    console.log("test");
+    $("#browserCheckPopup").popup('hide');
+  });
+  $("#includeDocs").load("docs.html");
   loadDefaultFunctions();
   gene = new Module.FloatVector();
   for(i=0; i < GENESIZE; i++) {
@@ -486,6 +494,7 @@ $(document).ready(function(){
       transition: 'all 0.3s'
     });
   });
+
 
   $("#randButton").button()
   .click(function() {
@@ -743,14 +752,7 @@ $(document).ready(function(){
 </div>
 
 <div id="my_popup" style="background:white; padding:10px; border-box:10px; max-width:800px;">
-  <div>
-     <object type="text/html" data="http://validator.w3.org/" width="800px" height="600px" style="overflow:auto;border:5px ridge blue">
-     </object>
-   </div>
-   <!-- <div><h1>Approximate Programming</h1></div>
-   <div><h2>What is approximate programming?</h2></div>
-   <div>Approximage programming</div> -->
-
+   <div id="includeDocs"></div>
    <!-- Add an optional button to close the popup -->
    <button class="my_popup_close" >Close</button>
 
@@ -784,7 +786,16 @@ $(document).ready(function(){
 </div>
 <div id="loadSnapPopup" style="background:white; padding:10px; border-box:10px; min-width=20em;width:400px;max-width:30em; max-height:80%; overflow-y:scroll;visibility:hidden;">
   <div>Load Scene
-    <div style="float:right;"><button idcloseLoadSnapPopupButton="closeLoadSnapPopupButton">close</button></div>
+    <div style="float:right;"><button id="closeLoadSnapPopupButton">close</button></div>
+  </div>
+</div>
+<div id="browserCheckPopup" style="margin: auto; background:white; padding:10px; border-box:10px; min-width=20em;width:400px;max-width:30em; max-height:80%; overflow-y:scroll;visibility:hidden;">
+  <div><h2>Browser Check</h2>
+    <div>
+    ApProgXimate Audio has been designed in Chrome, use in other browsers at your own risk!
+  </div>
+    <div><img src="Googlechromeflatlogo.png" border="0"></div>
+    <div style="float:right;"><button id="closeBrowserPopupButton">close</button></div>
   </div>
 </div>
 
