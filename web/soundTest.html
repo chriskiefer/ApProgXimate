@@ -645,10 +645,14 @@ $(document).ready(function(){
                     generate();
                 }
               }else{
-                console.log("function check failed");
+                $("#syntaxErrorMessage").empty();
+                $("#syntaxErrorMessage").append("A function named play() must be specified.");
+                $("#syntaxErrorMessage").show();
               }
             }else{
-              console.log("function check failed");
+              $("#syntaxErrorMessage").empty();
+              $("#syntaxErrorMessage").append(checker.name + "() should have no parameters");
+              $("#syntaxErrorMessage").show();
             }
           } catch (er) {
             $("#syntaxErrorMessage").empty();
