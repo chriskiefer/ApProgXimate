@@ -67,3 +67,7 @@
 .docPopup {
   background:white; padding:10px; border-box:10px; max-width:70%; visibility:hidden; max-height:80%; overflow-y:scroll;
 }
+
+#realtimeErrorMessage {
+  background:red; color: white; padding: 2px;
+}

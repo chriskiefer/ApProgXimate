@@ -1,4 +1,7 @@
-
+<!-- bugs: constindexes gone wrong - start on sound, but can't back to org after u[] param change
+copy and paste function to new window (two windows with same name -> blank window)
+make sure new function is 'off'
+-->
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html><head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
@@ -96,6 +99,8 @@ if (localStorage.getItem('snapshots') != null) {
 //   });
 // }
 
+//var realtimeErrorMessage="";
+var realtimeErrorHappening = false;
 function process(event) {
   //Get left/right input and output arrays
   inputArrayL = event.inputBuffer.getChannelData(0);
@@ -103,10 +108,27 @@ function process(event) {
   outputArrayL = event.outputBuffer.getChannelData(0);
   outputArrayR = event.outputBuffer.getChannelData(1);
   n = inputArrayL.length;
-  for (i = 0; i < n; ++i) {
-    x = approxRenderer();
-    outputArrayL[i] = x;
-    outputArrayR[i] = x;
+  try {
+    for (i = 0; i < n; ++i) {
+      x = approxRenderer();
+      outputArrayL[i] = x;
+      outputArrayR[i] = x;
+    }
+    if (realtimeErrorHappening) {
+      console.log("rt error clear");
+      realtimeErrorHappening = false;
+      $("#realtimeErrorMessage").empty();
+      $("#realtimeErrorMessage").hide();
+    }
+  }catch(e) {
+    if (!realtimeErrorHappening) {
+      realtimeErrorHappening = true;
+      //realtimeErrorMessage = e;
+      console.log("rt error set");
+      $("#realtimeErrorMessage").empty();
+      $("#realtimeErrorMessage").append(e);
+      $("#realtimeErrorMessage").show();
+    }
   }
 }
 
@@ -336,6 +358,7 @@ $(document).ready(function(){
   //     editor.resize()
   //   }
   // })
+  $("#realtimeErrorMessage").hide();
   $("#listenButtonBar").hide();
   $("#listenButton").button()
   .click(function() {
@@ -596,6 +619,7 @@ $(document).ready(function(){
         edi.clearSelection();
         edi.on("change", function(e) {
           try {
+            console.log("eval");
             eval("var checker = " + edi.getValue());
             if(checker.length==0) {
               console.log(checker.name);
@@ -740,7 +764,7 @@ $(document).ready(function(){
       Load Scene
     </button>
     <button id="createButton">
-      Create
+      >> Create Mode
     </button>
   </div>
   <div id="topButtonBar">
@@ -756,7 +780,7 @@ $(document).ready(function(){
       Randomise
     </button>
     <button id="listenButton">
-      Listen
+      >> Listen Mode
     </button>
   </div>
 </div>
@@ -770,6 +794,8 @@ $(document).ready(function(){
   <div id="codeButtonBar">
     <button id="deleteCodeButton">Delete</button>
     <button id="addCodeButton">Add</button>
+  </div>
+  <div id="realtimeErrorMessage">
   </div>
   <div id="accordion1" class="codeAccordion">
   </div>
