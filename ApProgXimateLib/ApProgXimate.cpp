@@ -351,9 +351,9 @@ std::string apProgXimateJS::genCode(std::vector<float> &gene, std::vector<std::s
     
     traverseJS(root, codeDecls, codeConsts, codeBody, codeCleanup, constIndexes, geneInfo);
     
-    for(int i=0; i < gene.size(); i++) {
-        printf("%d: %s\n", i, geneInfo[i].c_str());
-    }
+//    for(int i=0; i < gene.size(); i++) {
+//        printf("%d: %s\n", i, geneInfo[i].c_str());
+//    }
 
     
     code << codeDecls.str() << endl;

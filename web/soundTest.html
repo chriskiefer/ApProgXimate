@@ -117,7 +117,6 @@ function process(event) {
     if (realtimeErrorHappening) {
       console.log("rt error clear");
       realtimeErrorHappening = false;
-      $("#realtimeErrorMessage").empty();
       $("#realtimeErrorMessage").hide();
     }
   }catch(e) {
@@ -232,9 +231,9 @@ function generate() {
   preGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.01);
   appx.collectDataTypes();
   code = appx.genCode(gene, geneInfo, constIndexes, true);
-  for(i=0; i < constIndexes.size(); i++) {
-    console.log(constIndexes.get(i));
-  }
+  // for(i=0; i < constIndexes.size(); i++) {
+  //   console.log(constIndexes.get(i));
+  // }
   for(i=0; i < GLOBALMEMSIZE; i++) {
     globalMemory[i] = 0;
   }
@@ -359,6 +358,8 @@ $(document).ready(function(){
   //   }
   // })
   $("#realtimeErrorMessage").hide();
+  $("#syntaxErrorMessage").hide();
+
   $("#listenButtonBar").hide();
   $("#listenButton").button()
   .click(function() {
@@ -627,6 +628,7 @@ $(document).ready(function(){
               console.log(testInst);
               if (testInst.play != undefined) {
                 console.log("function check passed");
+                $("#syntaxErrorMessage").hide();
                 if (checker.name != titleNode.html()) {
                   console.log("removing: " + titleNode.html());
                   appx.removeFDef(titleNode.html());
@@ -648,12 +650,16 @@ $(document).ready(function(){
             }else{
               console.log("function check failed");
             }
-          } catch (e) {
-            if (e instanceof SyntaxError) {
-              console.log(e.message);
+          } catch (er) {
+            $("#syntaxErrorMessage").empty();
+            if (er instanceof SyntaxError) {
+              console.log("syntax: " + er.message);
+              $("#syntaxErrorMessage").append(er.message);
             } else {
-              console.log( e );
+              console.log( er );
+              $("#syntaxErrorMessage").append(er);
             }
+            $("#syntaxErrorMessage").show();
           }
           return true;
         })
@@ -796,6 +802,8 @@ $(document).ready(function(){
     <button id="addCodeButton">Add</button>
   </div>
   <div id="realtimeErrorMessage">
+  </div>
+  <div id="syntaxErrorMessage">
   </div>
   <div id="accordion1" class="codeAccordion">
   </div>
