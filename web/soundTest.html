@@ -288,6 +288,7 @@ $(document).ready(function(){
     $("#browserCheckPopup").popup('hide');
   });
   $("#includeDocs").load("docs.html");
+  $("#includeFAQ").load("FAQ.html");
   loadDefaultFunctions();
   gene = new Module.FloatVector();
   for(i=0; i < INITGENESIZE; i++) {
@@ -490,7 +491,6 @@ $(document).ready(function(){
 
   $("#helpButton").button()
   .click(function() {
-    console.log("test");
     $('#my_popup').popup({
       autoopen:true,
       color:'white',
@@ -498,7 +498,19 @@ $(document).ready(function(){
       transition: 'all 0.3s'
     });
   });
-
+  $("#FAQButton").button()
+  .click(function() {
+    $('#FAQPopup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
+  });
+  $("#FAQCloseButton").button()
+  .click(function() {
+    $("#FAQPopup").popup('hide');
+  });
 
   $("#randButton").button()
   .click(function() {
@@ -743,6 +755,7 @@ $(document).ready(function(){
 <!--<canvas id="view1" width="800px" height="600px"></canvas>-->
 <div class="ui-layout-south">
   <button id="helpButton">?</button>
+  <button id="FAQButton">FAQ</button>
 </div>
 <div class="ui-layout-center"><canvas id="eastCanvas" style="height: 100%; width: 100%;"></canvas> </div>
 <div class="ui-layout-west">
@@ -760,6 +773,12 @@ $(document).ready(function(){
    <button class="my_popup_close" >Close</button>
 
  </div>
+ <div id="FAQPopup" style="background:white; padding:10px; border-box:10px; max-width:800px;">
+    <div id="includeFAQ"></div>
+    <!-- Add an optional button to close the popup -->
+    <button id="FAQCloseButton">Close</button>
+
+  </div>
 
  <div id="saveSnapPopup" style="background:white; padding:10px; border-box:10px; max-width:30em; visibility:hidden;">
 
