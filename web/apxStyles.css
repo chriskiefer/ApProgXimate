@@ -76,3 +76,12 @@
 #syntaxErrorMessage {
   background:blue; color: white; padding: 2px; font-family: Monaco, Courier; font-size: 80%;
 }
+
+.titlestyle {
+  color: white; padding: 2px; font-family: Monaco, Courier; font-size: 120%; float:left; background-color: grey; padding: 5px;
+  text-shadow: 1px 4px 3px #2c2e2c, 5px 5px 8px #898989;
+}
+
+.ui-layout-north {
+  font-family: Monaco, Courier;
+}
