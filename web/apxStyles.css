@@ -63,3 +63,7 @@
   border-width: 1px;
   padding:1em;
 }
+
+.docPopup {
+  background:white; padding:10px; border-box:10px; max-width:70%; visibility:hidden; max-height:80%; overflow-y:scroll;
+}

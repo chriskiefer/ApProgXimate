@@ -1,9 +1,46 @@
+<html>
+<head>
+<link href="prism.css" rel="stylesheet" />
+<script src="prism.js"></script>
+</head>
+<body>
 <div><h1>ApProgXimate Audio</h1></div>
 Welcome to ApProgXimate Audio.  ApProgXimate Audio is a somewhat chaotic way of making and exploring new sounds. It's a useful method to exploring sonic spaces and finding unexpected sonic surprises.
-<div><h2>What is approximate programming?</h2></div>
-<div>Approximage programming</div>
-<div><h2>User Interface</h2></div>
+
+In short, it works like this:  you provide a set of small component functions. These component functions use used as building blocks to create a larger and more complex algorithm, according to a recipe given by a set of numbers (a gene).
+
+In this environment, the component functions you provide will change or generate sound in small simple ways, and the resulting algorithm will combine these functions to generate sound in a more complex way.
+
+You can change the values on the gene in realtime, changing the way the components are built into an algorithm, and therefore changing the sound you will hear.
+
+<h2>Why?</h2>
+
+<h2>Modes</h2>
 
 <div><h1>Reference</h1></div>
+<div><h2>Requirements for component functions</h2></div>
+<pre><code class="language-javascript">
+function myComponent() {
+ 	this.play = function(j0) {
+ 		return j0;
+ 	}
+ }
+
+</code></pre>
+
+The code above demonstrates the minimum requirements for a component function. It's a function called 'play' wrapped in another function called 'myComponent'. The function 'play()' must have at least one parameter (which will be a floating point number) and must output a single number.  The function above will just pass through the variable j0, having no direct effect on the sound. Let's look a something more interesting:
+
+<pre><code class="language-javascript">
+  function saw() {
+       this.osc = new Module.maxiOsc();
+       this.play = function(j0) {
+         return this.osc.sawn(Module.maxiMap.linexp(j0,-1,1,20,20000));
+       }
+     }
+       
+</code></pre>
+
 <div><h2>Maximilian Audio Library</h2></div>
 <div></div>
+</body>
+</html>

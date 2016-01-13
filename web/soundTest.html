@@ -20,6 +20,8 @@
   <script src="Recorderjs/dist/recorder.js"></script>
   <script src="jquery-popup-overlay/jquery.popupoverlay.js"></script>
   <script src="ace-builds/src-min/ace.js"></script>
+  <link href="prism.css" rel="stylesheet" />
+  <script src="prism.js"></script>
   <style type="text/css" media="screen">
   /*.scrollmargin {
   height: 500px;
@@ -287,7 +289,8 @@ $(document).ready(function(){
     console.log("test");
     $("#browserCheckPopup").popup('hide');
   });
-  $("#includeDocs").load("docs.html");
+  $("#includeDocs").load("docs.html", function() {
+  });
   $("#includeFAQ").load("FAQ.html");
   loadDefaultFunctions();
   gene = new Module.FloatVector();
@@ -491,12 +494,17 @@ $(document).ready(function(){
 
   $("#helpButton").button()
   .click(function() {
+    Prism.highlightAll();
     $('#my_popup').popup({
       autoopen:true,
       color:'white',
       outline:true,
       transition: 'all 0.3s'
     });
+  });
+  $("#helpCloseButton").button()
+  .click(function() {
+    $("#my_popup").popup('hide');
   });
   $("#FAQButton").button()
   .click(function() {
@@ -767,13 +775,13 @@ $(document).ready(function(){
   </div>
 </div>
 
-<div id="my_popup" style="background:white; padding:10px; border-box:10px; max-width:800px;">
+<div id="my_popup" class="docPopup">
    <div id="includeDocs"></div>
    <!-- Add an optional button to close the popup -->
-   <button class="my_popup_close" >Close</button>
+   <button id="helpCloseButton" >Close</button>
 
  </div>
- <div id="FAQPopup" style="background:white; padding:10px; border-box:10px; max-width:800px;">
+ <div id="FAQPopup" class="docPopup">
     <div id="includeFAQ"></div>
     <!-- Add an optional button to close the popup -->
     <button id="FAQCloseButton">Close</button>
