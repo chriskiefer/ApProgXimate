@@ -65,6 +65,7 @@ var snapShots = {};
 if (localStorage.getItem('snapshots') != null) {
   snapShots = JSON.parse(localStorage.getItem('snapshots'));
 }
+var editorFontSize = 10;
 
 // var recorder;
 // function startRecording(button) {
@@ -516,6 +517,18 @@ $(document).ready(function(){
     });
   });
 
+  $("#fontShrink").button()
+  .click(function() {
+    editorFontSize = Math.max(editorFontSize-1, 5);
+    edi && edi.setFontSize(editorFontSize);
+    editor && editor.setFontSize(editorFontSize);
+  });
+  $("#fontGrow").button()
+  .click(function() {
+    editorFontSize++;
+    edi && edi.setFontSize(editorFontSize);
+    editor && editor.setFontSize(editorFontSize);
+  });
   $("#helpButton").button()
   .click(function() {
     Prism.highlightAll();
@@ -610,7 +623,7 @@ $(document).ready(function(){
         edi = ace.edit("edit8");
         edi.setTheme("ace/theme/chrome");
         edi.session.setMode("ace/mode/javascript");
-        edi.setFontSize(10);
+        edi.setFontSize(editorFontSize);
         edi.renderer.setScrollMargin(10, 10);
         edi.setOptions({
           autoScrollEditorIntoView: false,
@@ -797,8 +810,14 @@ $(document).ready(function(){
 </div>
 <!--<canvas id="view1" width="800px" height="600px"></canvas>-->
 <div class="ui-layout-south">
-  <button id="helpButton">?</button>
-  <button id="FAQButton">FAQ</button>
+  <div style="float:left;">
+    <button style="font-size:30%" id="fontShrink">T</button>
+    <button style="font-size:100%" id="fontGrow">T</button>
+  </div>
+  <div style="float:right;">
+    <button id="helpButton">?</button>
+    <button id="FAQButton">FAQ</button>
+  </div>
 </div>
 <div class="ui-layout-center"><canvas id="eastCanvas" style="height: 100%; width: 100%;"></canvas> </div>
 <div class="ui-layout-west">
