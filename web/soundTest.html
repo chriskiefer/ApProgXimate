@@ -37,10 +37,9 @@ make sure new function is 'off'
 
 <!-- Our javascript code -->
 <script type="text/javascript">
-var appx = new Module.approgx();
 // Temporary patch until all browsers support unprefixed context.
 AudioContext = AudioContext || webkitAudioContext;
-
+var appx;
 var audioCtx = new AudioContext();
 var source = 0;
 var jsProcessor = 0;
@@ -303,6 +302,7 @@ function saveSnapshots() {
   localStorage.setItem('snapshots', JSON.stringify(snapShots));
 }
 $(document).ready(function(){
+  appx = new Module.approgx();
 
   (window.chrome == undefined) && $("#browserCheckPopup").popup('show');
   $("#closeBrowserPopupButton").button()
