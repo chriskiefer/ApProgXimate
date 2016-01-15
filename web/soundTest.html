@@ -731,6 +731,21 @@ $(document).ready(function(){
 //    var mousePos = getMousePos(c, evt);
     mouseIsDown = false;
   }, false);
+  console.log("end of ready");
+  // $.get( "api/scene/2", function( data ) {
+  //   console.log(JSON.parse(data));
+  // });
+  $.ajax({
+    type: "POST",
+    contentType: 'application/json',
+    //dataType: "json",
+    url: "api/scene",
+    data: JSON.stringify(snapShots.bagpipes),
+    success: function(response){console.log(response);},
+    error: function(jqXHR, textStatus, errorThrown){
+        console.log('post error: ' + textStatus);
+      }
+  });
 });
 </script>
 
