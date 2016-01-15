@@ -11,7 +11,6 @@ make sure new function is 'off'
     ApProgXimate Programming
   </title>
 
-  <script src="apProgXimate.js"></script>
   <script src="apxFunctions.js"></script>
   <script src="codePanel.js"></script>
   <script src="jquery-2.1.4.min.js"></script>
@@ -272,9 +271,7 @@ function updateCanvas() {
 function saveSnapshots() {
   localStorage.setItem('snapshots', JSON.stringify(snapShots));
 }
-$(document).ready(function(){
-  (window.chrome == undefined) && $("#browserCheckPopup").popup('show');
-
+function onAppxLoaded() {
   appx = new Module.approgx();
   if (localStorage.getItem('snapshots') != null) {
     snapShots = JSON.parse(localStorage.getItem('snapshots'));
@@ -789,7 +786,30 @@ $(document).ready(function(){
 //    var mousePos = getMousePos(c, evt);
     mouseIsDown = false;
   }, false);
-  console.log(getID());
+}
+
+$(document).ready(function(){
+  (window.chrome == undefined) && $("#browserCheckPopup").popup('show');
+
+  $.getScript( "apProgXimate.js", function( data, textStatus, jqxhr ) {
+    console.log( "Appx is loaded." );
+    function waitForAppx(){
+      if(typeof Module.approgx !== "undefined"){
+          //variable exists, do what you want
+          console.log("appx ready");
+          onAppxLoaded();
+      }
+      else{
+        console.log("waiting for module to compile");
+          setTimeout(function(){
+              waitForAppx();
+          },250);
+      }
+    }
+    waitForAppx();
+    //console.log(Module.approgx);
+  });
+
 });
 </script>
 
