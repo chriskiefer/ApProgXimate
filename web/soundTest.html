@@ -59,6 +59,18 @@ var editorFontSize = 10;
 var dcBlocker;
 var realtimeErrorHappening = false;
 
+function getID() {
+  idCounter = localStorage.getItem('idCounter');
+  if (idCounter == null) {
+    idCounter = {'idx':0};
+  }else{
+    idCounter = JSON.parse(idCounter);
+  }
+  idCounter.idx++;
+  localStorage.setItem('idCounter', JSON.stringify(idCounter));
+  return idCounter.idx;
+}
+
 function process(event) {
   //Get left/right input and output arrays
   inputArrayL = event.inputBuffer.getChannelData(0);
@@ -348,16 +360,13 @@ $(document).ready(function(){
 
   $("#saveSnapshotFormButton").button()
   .click(function() {
-    console.log($('#saveSnapshotForm #snapNickName').val());
     var newSnap = {};
     newSnap.nickName = $('#saveSnapshotForm #snapNickName').val();
-    newSnap.title = $('#saveSnapshotForm #snapTitle').val()
-    newSnap.desc = $('#saveSnapshotForm #snapDesc').val()
+    newSnap.title = $('#saveSnapshotForm #snapTitle').val();
+    newSnap.desc = $('#saveSnapshotForm #snapDesc').val();
     newSnap.geneSize = gene.size();
     newSnap.gene = new Array(gene.size());
     for(i=0; i < gene.size(); i++) newSnap.gene[i] = gene.get(i);
-//    var numFuncs = $('.codeAccordion').children().length;
-
     functionNames = new Module.StringVector();
     newSnap.funcs = new Array(functionNames.size());
     newSnap.funcsEnabled = new Array(functionNames.size());
@@ -366,12 +375,25 @@ $(document).ready(function(){
       newSnap.funcs[i] = appx.getCode(functionNames.get(i));
       newSnap.funcsEnabled[i] = appx.isEnabled(functionNames.get(i));
     }
-    snapShots[newSnap.title] = newSnap;
-    //localStorage.setItem('snapshot', JSON.stringify(newSnap));
-    //localStorage.setItem('snapshots', JSON.stringify(snapShots));
-    saveSnapshots();
-    console.log(JSON.parse(localStorage.getItem('snapshot')));
-    console.log(snapShots);
+    if ($('#saveSnapshotForm #snapShare').is(':checked')) {
+      //save online
+      $.ajax({
+        type: "POST",
+        contentType: 'application/json',
+        url: "api/scene",
+        data: JSON.stringify(newSnap),
+        success: function(response){console.log(response);},
+        error: function(jqXHR, textStatus, errorThrown){
+            console.log('post error: ' + textStatus);
+          }
+      });
+    }else{
+      newSnap.localID = getID();
+      snapShots[newSnap.localID] = newSnap;
+      saveSnapshots();
+    }
+    // console.log(JSON.parse(localStorage.getItem('snapshot')));
+    // console.log(snapShots);
     $('#saveSnapPopup').popup('hide');
   });
   $("#saveSnapshotFormCancelButton").button()
@@ -384,6 +406,7 @@ $(document).ready(function(){
     $('#saveSnapshotForm #snapNickName').val("");
     $('#saveSnapshotForm #snapTitle').val("")
     $('#saveSnapshotForm #snapDesc').val("")
+    $('#saveSnapshotForm #snapShare').attr("checked", true)
     $('#saveSnapPopup').popup({
       autoopen:true,
       color:'white',
@@ -395,83 +418,118 @@ $(document).ready(function(){
   .click(function() {
     $("#loadSnapButton").click();
   });
+
+  function loadSnapshotObject(snap) {
+    for(i=0; i < snap.funcs.length; i++) {
+      console.log(snap.funcs[i]);
+      try {
+        console.log("checking");
+        eval("var checker = " + snap.funcs[i]);
+        if(checker.length==0) {
+          console.log(checker.name);
+          var testInst = new checker();
+          if (testInst.play != undefined) {
+            console.log("function check passed");
+            var numArgs = testInst.play.length;
+            appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
+            appx.enableFDef(checker.name, snap.funcsEnabled[i]);
+            addCodePanel(checker.name, snap.funcsEnabled[i]);
+          }else{
+            console.log("function check failed");
+          }
+        }else{
+          console.log("function check failed");
+        }
+      } catch (e) {
+        console.log("error");
+        if (e instanceof SyntaxError) {
+          console.log(e.message);
+        } else {
+          console.log( e );
+        }
+      }
+    };
+    $('.codeAccordion').accordion("refresh");
+    gene.resize(snap.geneSize, 0);
+    for(i=0; i < snap.geneSize; i++) {
+      gene.set(i, snap.gene[i]);
+    }
+    $("#geneSizeSpinner").spinner().val(gene.size());
+    generate();
+    configCanvas();
+    updateCanvas();
+    $('#loadSnapPopup').popup('hide');
+  }
+
+  function addSnapShotToLoadDialog(e, isLocal, snapID) {
+    console.log("ID: " + snapID)
+    buttonID = "loadSnapButton" + buttonIdx;
+    $('#loadSnapPopup').append(' \
+     <div class="snapDesc" style="background-color:' + (isLocal ? '#FEFEFE' : '#EEEEEE')+ '"> \
+      <div><span style="font-weight:bold">' + e.title + '</span><span style="font-size:70%"> by ' + e.nickName + '</span></div> \
+      <div>' + e.desc + '</div> \
+      <div><button data-local="'+ (isLocal ? '1' : '0') + '" data-name="' + e.title + '" data-id = "' + snapID + '" id="' + buttonID+ '">load</button></div> \
+    </div> \
+    ');
+    //TODO: use some sort of ID?
+    buttonIdx++;
+    $("#" + buttonID).button()
+    .click(function() {
+      console.log("load");
+      console.log($(this).data().local);
+      // console.log($(this).data().name);
+      // console.log(snapShots[$(this).data().name]);
+      var rows = $('.codeAccordion').find("span.accHeader");
+      console.log(rows.first().html());
+      rows.each(function(i) {
+        appx.removeFDef($(this).html());
+      })
+      rows = $('.codeAccordion').children();
+      $.each(rows, function(idx,val){
+        val.remove();
+      });
+      var snap;
+      if ($(this).data().local) {
+        snap = snapShots[$(this).data().id];
+        loadSnapshotObject(snap);
+      }else{
+        $.get( "api/scene/" + $(this).data().id, function( data ) {
+          sceneData = JSON.parse(data);
+          console.log(sceneData);
+          sceneObj = JSON.parse(sceneData[0].jsondata);
+          console.log(sceneObj);
+          loadSnapshotObject(sceneObj);
+        });
+
+      }
+    });
+  }
   $("#loadSnapButton").button()
   .click(function() {
     $('#loadSnapPopup').empty().append('<div>Load Scene<!--<div style="float:right;"><button class="my_popup_close" >Close</button></div>--></div>');
-    //snapShots = JSON.parse(localStorage.getItem('snapshots'));
-    //console.log(snapShots);
     buttonIdx = 0;
+    $('#loadSnapPopup').append(' \
+     <div class="snapLoadLabel"> \
+     Locally Stored \
+    </div> \
+    ');
     for(e in snapShots) {
-      console.log(snapShots[e]);
-      buttonID = "loadSnapButton" + buttonIdx;
-      $('#loadSnapPopup').append(' \
-       <div class="snapDesc"> \
-        <div><span style="font-weight:bold">' + snapShots[e].title + '</span><span style="font-size:70%"> by ' + snapShots[e].nickName + '</span></div> \
-        <div>' + snapShots[e].desc + '</div> \
-        <div><button data-name="' + snapShots[e].title + '" id="' + buttonID+ '">load</button></div> \
-      </div> \
-      ');
-      //TODO: use some sort of ID?
-      buttonIdx++;
-      $("#" + buttonID).button()
-      .click(function() {
-        console.log("load");
-        // console.log($(this).data().name);
-        // console.log(snapShots[$(this).data().name]);
-        var rows = $('.codeAccordion').find("span.accHeader");
-        console.log(rows.first().html());
-        rows.each(function(i) {
-          console.log($(this).html());
-          appx.removeFDef($(this).html());
-        })
-        rows = $('.codeAccordion').children();
-        $.each(rows, function(idx,val){
-          console.log(val);
-          val.remove();
-        });
-        var snap = snapShots[$(this).data().name]; //JSON.parse(localStorage.getItem('snapshot'));
-        console.log(snap);
-        for(i=0; i < snap.funcs.length; i++) {
-          console.log(snap.funcs[i]);
-          try {
-            console.log("checking");
-            eval("var checker = " + snap.funcs[i]);
-            if(checker.length==0) {
-              console.log(checker.name);
-              var testInst = new checker();
-              if (testInst.play != undefined) {
-                console.log("function check passed");
-                var numArgs = testInst.play.length;
-                appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
-                appx.enableFDef(checker.name, snap.funcsEnabled[i]);
-                addCodePanel(checker.name, snap.funcsEnabled[i]);
-              }else{
-                console.log("function check failed");
-              }
-            }else{
-              console.log("function check failed");
-            }
-          } catch (e) {
-            console.log("error");
-            if (e instanceof SyntaxError) {
-              console.log(e.message);
-            } else {
-              console.log( e );
-            }
-          }
-        };
-        $('.codeAccordion').accordion("refresh");
-        gene.resize(snap.geneSize, 0);
-        for(i=0; i < snap.geneSize; i++) {
-          gene.set(i, snap.gene[i]);
-        }
-        $("#geneSizeSpinner").spinner().val(gene.size());
-        generate();
-        configCanvas();
-        updateCanvas();
-        $('#loadSnapPopup').popup('hide');
-      });
+      addSnapShotToLoadDialog(snapShots[e], true, e);
     }
+    $('#loadSnapPopup').append(' \
+     <div class="snapLoadLabel"> \
+     Shared Online\
+    </div> \
+    ');
+    $.get( "api/scenes", function( data ) {
+      scenesData = JSON.parse(data);
+      console.log(scenesData);
+      for(e in scenesData) {
+        console.log(scenesData[e]);
+        addSnapShotToLoadDialog(scenesData[e], false, scenesData[e].id);
+      }
+    });
+
     // $("#closeLoadSnapPopupButton").button()
     // .click(function() {
     //   $('#loadSnapPopup').popup('hide');
@@ -731,21 +789,7 @@ $(document).ready(function(){
 //    var mousePos = getMousePos(c, evt);
     mouseIsDown = false;
   }, false);
-  console.log("end of ready");
-  // $.get( "api/scene/2", function( data ) {
-  //   console.log(JSON.parse(data));
-  // });
-  $.ajax({
-    type: "POST",
-    contentType: 'application/json',
-    //dataType: "json",
-    url: "api/scene",
-    data: JSON.stringify(snapShots.bagpipes),
-    success: function(response){console.log(response);},
-    error: function(jqXHR, textStatus, errorThrown){
-        console.log('post error: ' + textStatus);
-      }
-  });
+  console.log(getID());
 });
 </script>
 
@@ -842,7 +886,11 @@ $(document).ready(function(){
             </div>
             <div>
               <label for="snapDesc">Description</label>
-              <textarea id="snapDesc" name="snapDesc" rows="3" style="float:right"></textarea>
+              <textarea id="snapDesc" name="snapDesc" rows="3" style="float:clear"></textarea>
+            </div>
+            <div>
+              <label for="snapShare">Share</label>
+              <input id="snapShare" name="snapShare" type="checkbox">
             </div>
         </div>
     </form>
