@@ -35,16 +35,14 @@ make sure new function is 'off'
   </style>*/
   </style>
 
-<!-- Our javascript code -->
 <script type="text/javascript">
-// Temporary patch until all browsers support unprefixed context.
 AudioContext = AudioContext || webkitAudioContext;
 var appx;
-var audioCtx = new AudioContext();
+var audioCtx;
+var preGain;
 var source = 0;
 var jsProcessor = 0;
 var dcProcessor = 0;
-var preGain = audioCtx.createGain();
 var limiter = 0;
 var masterLPF=0;
 var analyser;
@@ -54,52 +52,13 @@ var INITGENESIZE = 50;
 var editor;
 var GLOBALMEMSIZE=10;
 var globalMemory = [];
-for (i=0; i < GLOBALMEMSIZE; i++) {
-  globalMemory[i] = 0;
-};
 var interfaceModes = {LISTEN:1, CREATE:2};
 var interfaceMode = interfaceModes.CREATE;
 var snapShots = {};
-if (localStorage.getItem('snapshots') != null) {
-  snapShots = JSON.parse(localStorage.getItem('snapshots'));
-}
 var editorFontSize = 10;
-
-// var recorder;
-// function startRecording(button) {
-//   recorder && recorder.record();
-//   button.disabled = true;
-//   button.nextElementSibling.disabled = false;
-// }
-// function stopRecording(button) {
-//   recorder && recorder.stop();
-//   button.disabled = true;
-//   button.previousElementSibling.disabled = false;
-//
-//   // create WAV download link using audio data blob
-//   createDownloadLink();
-//   recorder.clear();
-// }
-// function createDownloadLink() {
-//   recorder && recorder.exportWAV(function(blob) {
-//     var url = URL.createObjectURL(blob);
-//     var li = document.createElement('li');
-//     var au = document.createElement('audio');
-//     var hf = document.createElement('a');
-//
-//     au.controls = true;
-//     au.src = url;
-//     hf.href = url;
-//     hf.download = new Date().toISOString() + '.wav';
-//     hf.innerHTML = hf.download;
-//     li.appendChild(au);
-//     li.appendChild(hf);
-//     recordingslist.appendChild(li);
-//   });
-// }
-
-//var realtimeErrorMessage="";
+var dcBlocker;
 var realtimeErrorHappening = false;
+
 function process(event) {
   //Get left/right input and output arrays
   inputArrayL = event.inputBuffer.getChannelData(0);
@@ -130,7 +89,7 @@ function process(event) {
   }
 }
 
-var dcBlocker = new Module.maxiDCBlocker();
+
 function dcBlockerFunc(event) {
   //Get left/right input and output arrays
   inputArrayL = event.inputBuffer.getChannelData(0);
@@ -177,7 +136,9 @@ function randomiseGene() {
 }
 
 function initAudio() {
+  audioCtx = new AudioContext();
 
+  dcBlocker = new Module.maxiDCBlocker();
   // audioCtx = new AudioContext();
   source = audioCtx.createBufferSource();
 
@@ -196,6 +157,7 @@ function initAudio() {
   analyser = audioCtx.createAnalyser();
   analyser.fftSize = 512;
 
+  preGain = audioCtx.createGain();
   preGain.gain.value = 1;
   limiter = audioCtx.createDynamicsCompressor();
   limiter.threshold.value = -0.05;
@@ -223,16 +185,13 @@ function _dispose(x){
   }
 }
 
-var geneInfo = new Module.StringVector();
-var constIndexes = new Module.UnsignedIntVector();
+var geneInfo;
+var constIndexes;
 
 function generate() {
   preGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.01);
   appx.collectDataTypes();
   code = appx.genCode(gene, geneInfo, constIndexes, true);
-  // for(i=0; i < constIndexes.size(); i++) {
-  //   console.log(constIndexes.get(i));
-  // }
   for(i=0; i < GLOBALMEMSIZE; i++) {
     globalMemory[i] = 0;
   }
@@ -302,9 +261,18 @@ function saveSnapshots() {
   localStorage.setItem('snapshots', JSON.stringify(snapShots));
 }
 $(document).ready(function(){
-  appx = new Module.approgx();
-
   (window.chrome == undefined) && $("#browserCheckPopup").popup('show');
+
+  appx = new Module.approgx();
+  if (localStorage.getItem('snapshots') != null) {
+    snapShots = JSON.parse(localStorage.getItem('snapshots'));
+  }
+  for (i=0; i < GLOBALMEMSIZE; i++) {
+    globalMemory[i] = 0;
+  };
+  geneInfo = new Module.StringVector();
+  constIndexes = new Module.UnsignedIntVector();
+
   $("#closeBrowserPopupButton").button()
   .click(function() {
     console.log("test");
@@ -706,8 +674,8 @@ $(document).ready(function(){
   });
   editor.$blockScrolling = Infinity;
 
-  generate();
   initAudio();
+  generate();
 
   configCanvas();
   mouseIsDown = false;
@@ -738,7 +706,6 @@ $(document).ready(function(){
           constIdx = i;
         }
       }
-      console.log(constIdx);
       gene.set(geneIdx, newVal);
       if (constIdx == -1) {
         generate();
