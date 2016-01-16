@@ -5,15 +5,23 @@
 </head>
 <body>
 <div><h1>ApProgXimate Audio</h1></div>
-Welcome to ApProgXimate Audio.  ApProgXimate Audio is a somewhat chaotic way of making and exploring new sounds. It's a useful method to exploring sonic spaces and finding unexpected sonic surprises.
+Welcome to ApProgXimate Audio.  ApProgXimate Audio is a somewhat chaotic way listening of making and exploring new sounds. It's a venue to to explore sonic spaces and find unexpected sonic surprises.
 
-In short, it works like this:  you provide a set of small component functions. These component functions use used as building blocks to create a larger and more complex algorithm, according to a recipe given by a set of numbers (a gene).
+You'll see plenty of code on this site, but don't worry if you do programming - you can still explore the sounds without needing to understand or write any code - just switch to 'listen mode' and try out the presets.
+
+<h2>Approximate Programming</h2>
+
+This site makes sound using a programming technique called Approximate Programming. In short, it works like this:  you provide a set of small component functions. These component functions use used as building blocks to create a larger and more complex algorithm, according to a recipe given by a set of numbers (a gene).
 
 In this environment, the component functions you provide will change or generate sound in small simple ways, and the resulting algorithm will combine these functions to generate sound in a more complex way.
 
 You can change the values on the gene in realtime, changing the way the components are built into an algorithm, and therefore changing the sound you will hear.
 
-<h2></h2>
+<h2>Modes</h2>
+
+You can use this site in two modes - 'listen mode' and 'create mode' - and switch between them with the button in the top right hand corner of the screen.  In 'listen mode' you can explore ready-made scenes, and manipulate the sound you are listening to with the mouse.  In 'create mode', you have full access to all the elements that are making the sound, so you can program your own.
+
+
 <h2>More documentation will arrive soon!</h2>
 
 
@@ -22,13 +30,13 @@ You can change the values on the gene in realtime, changing the way the componen
 <pre><code class="language-javascript">
 function myComponent() {
  	this.play = function(j0) {
- 		return j0;
+ 		return j0 + 1;
  	}
  }
 
 </code></pre>
 
-The code above demonstrates the minimum requirements for a component function. It's a function called 'play' wrapped in another function called 'myComponent'. The function 'play()' must have at least one parameter (which will be a floating point number) and must output a single number.  The function above will just pass through the variable j0, having no direct effect on the sound. Let's look a something more interesting:
+The code above demonstrates the minimum requirements for a component function. It's a function called 'play' wrapped in another function. The function 'play()' must have at least one parameter (which will be a floating point number) and must output a single number.  The function adds 1 to the variable j0. Let's look a something more interesting:
 
 <pre><code class="language-javascript">
   function saw() {
@@ -39,6 +47,8 @@ The code above demonstrates the minimum requirements for a component function. I
      }
 
 </code></pre>
+
+In this component function, a saw wave is generated.  This function instantiates a new maxiOsc() oscillator when initialised. The 'play' function takes one argument, which it uses as the frequency for the saw wave oscillator, mapping it into exponential frequency range using maxiMap.linexp.
 
 <div><h2>Maximilian Audio Library</h2></div>
 <div></div>
