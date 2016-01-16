@@ -8,8 +8,19 @@ make sure new function is 'off'
   <!-- header('content-type: application/json; charset=utf-8');
   header("access-control-allow-origin: *"); -->
   <title>
-    ApProgXimate Programming
+    ApProgXimate Audio
   </title>
+
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-3850902-6', 'auto');
+    ga('send', 'pageview');
+
+  </script>
 
   <script src="apxFunctions.js"></script>
   <script src="codePanel.js"></script>
@@ -57,6 +68,7 @@ var snapShots = {};
 var editorFontSize = 10;
 var dcBlocker;
 var realtimeErrorHappening = false;
+var buttonIdx = 0;
 
 function getID() {
   idCounter = localStorage.getItem('idCounter');
@@ -322,6 +334,7 @@ function loadSharedScene(idx) {
     sceneObj = JSON.parse(sceneData[0].jsondata);
     console.log(sceneObj);
     loadSnapshotObject(sceneObj);
+    ga('send', 'pageview', 'api/scene');
   });
 }
 
@@ -438,7 +451,7 @@ function onAppxLoaded() {
         contentType: 'application/json',
         url: "api/scene",
         data: JSON.stringify(newSnap),
-        success: function(response){console.log(response);},
+        success: function(response){console.log(response); ga('send', 'pageview', 'api/scene');},
         error: function(jqXHR, textStatus, errorThrown){
             console.log('post error: ' + textStatus);
           }
@@ -535,18 +548,28 @@ function onAppxLoaded() {
         console.log(scenesData[e]);
         addSnapShotToLoadDialog(scenesData[e], false, scenesData[e].id);
       }
+      console.log($('#loadSnapPopup'));
+      $('#loadSnapPopup').popup({
+        autoopen:true,
+        color:'white',
+        outline:true,
+        transition: 'all 0.3s'
+      });
+      $('#loadSnapPopup').popup('show');
+      console.log("------")
+      ga('send', 'pageview', 'api/scenes');
     });
 
     // $("#closeLoadSnapPopupButton").button()
     // .click(function() {
     //   $('#loadSnapPopup').popup('hide');
     // });
-    $('#loadSnapPopup').popup({
-      autoopen:true,
-      color:'white',
-      outline:true,
-      transition: 'all 0.3s'
-    });
+    // $('#loadSnapPopup').popup({
+    //   autoopen:true,
+    //   color:'white',
+    //   outline:true,
+    //   transition: 'all 0.3s'
+    // });
   });
 
   $("#fontShrink").button()
