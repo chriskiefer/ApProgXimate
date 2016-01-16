@@ -271,6 +271,60 @@ function updateCanvas() {
 function saveSnapshots() {
   localStorage.setItem('snapshots', JSON.stringify(snapShots));
 }
+
+function loadSnapshotObject(snap) {
+  for(i=0; i < snap.funcs.length; i++) {
+    console.log(snap.funcs[i]);
+    try {
+      console.log("checking");
+      eval("var checker = " + snap.funcs[i]);
+      if(checker.length==0) {
+        console.log(checker.name);
+        var testInst = new checker();
+        if (testInst.play != undefined) {
+          console.log("function check passed");
+          var numArgs = testInst.play.length;
+          appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
+          appx.enableFDef(checker.name, snap.funcsEnabled[i]);
+          addCodePanel(checker.name, snap.funcsEnabled[i]);
+        }else{
+          console.log("function check failed");
+        }
+      }else{
+        console.log("function check failed");
+      }
+    } catch (e) {
+      console.log("error");
+      if (e instanceof SyntaxError) {
+        console.log(e.message);
+      } else {
+        console.log( e );
+      }
+    }
+  };
+  $('.codeAccordion').accordion("refresh");
+  gene.resize(snap.geneSize, 0);
+  for(i=0; i < snap.geneSize; i++) {
+    gene.set(i, snap.gene[i]);
+  }
+  $("#geneSizeSpinner").spinner().val(gene.size());
+  generate();
+  configCanvas();
+  updateCanvas();
+  $('#loadSnapPopup').popup('hide');
+}
+
+function loadSharedScene(idx) {
+  console.log("Loading shared scene " + idx);
+  $.get( "api/scene/" + idx, function( data ) {
+    sceneData = JSON.parse(data);
+    console.log(sceneData);
+    sceneObj = JSON.parse(sceneData[0].jsondata);
+    console.log(sceneObj);
+    loadSnapshotObject(sceneObj);
+  });
+}
+
 function onAppxLoaded() {
   appx = new Module.approgx();
   if (localStorage.getItem('snapshots') != null) {
@@ -290,7 +344,7 @@ function onAppxLoaded() {
   $("#includeDocs").load("docs.html", function() {
   });
   $("#includeFAQ").load("FAQ.html");
-  loadDefaultFunctions();
+//  loadDefaultFunctions();
   gene = new Module.FloatVector();
   for(i=0; i < INITGENESIZE; i++) {
     gene.push_back(Math.random());
@@ -314,6 +368,11 @@ function onAppxLoaded() {
   ;
   apxlayout.sizePane("west", 400);
   apxlayout.sizePane("east", 400);
+  apxlayout.toggle("east");
+  apxlayout.toggle("west");
+  $("#topButtonBar").hide();
+  $("#listenButtonBar").show();
+
   $(document).on("keydown", function (e) {
       if (e.which === 8 && !$(e.target).is("input, textarea")) {
           e.preventDefault();
@@ -337,7 +396,7 @@ function onAppxLoaded() {
   $("#realtimeErrorMessage").hide();
   $("#syntaxErrorMessage").hide();
 
-  $("#listenButtonBar").hide();
+  //$("#listenButtonBar").hide();
   $("#listenButton").button()
   .click(function() {
     interfaceMode = interfaceModes.LISTEN;
@@ -416,48 +475,6 @@ function onAppxLoaded() {
     $("#loadSnapButton").click();
   });
 
-  function loadSnapshotObject(snap) {
-    for(i=0; i < snap.funcs.length; i++) {
-      console.log(snap.funcs[i]);
-      try {
-        console.log("checking");
-        eval("var checker = " + snap.funcs[i]);
-        if(checker.length==0) {
-          console.log(checker.name);
-          var testInst = new checker();
-          if (testInst.play != undefined) {
-            console.log("function check passed");
-            var numArgs = testInst.play.length;
-            appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
-            appx.enableFDef(checker.name, snap.funcsEnabled[i]);
-            addCodePanel(checker.name, snap.funcsEnabled[i]);
-          }else{
-            console.log("function check failed");
-          }
-        }else{
-          console.log("function check failed");
-        }
-      } catch (e) {
-        console.log("error");
-        if (e instanceof SyntaxError) {
-          console.log(e.message);
-        } else {
-          console.log( e );
-        }
-      }
-    };
-    $('.codeAccordion').accordion("refresh");
-    gene.resize(snap.geneSize, 0);
-    for(i=0; i < snap.geneSize; i++) {
-      gene.set(i, snap.gene[i]);
-    }
-    $("#geneSizeSpinner").spinner().val(gene.size());
-    generate();
-    configCanvas();
-    updateCanvas();
-    $('#loadSnapPopup').popup('hide');
-  }
-
   function addSnapShotToLoadDialog(e, isLocal, snapID) {
     console.log("ID: " + snapID)
     buttonID = "loadSnapButton" + buttonIdx;
@@ -490,14 +507,7 @@ function onAppxLoaded() {
         snap = snapShots[$(this).data().id];
         loadSnapshotObject(snap);
       }else{
-        $.get( "api/scene/" + $(this).data().id, function( data ) {
-          sceneData = JSON.parse(data);
-          console.log(sceneData);
-          sceneObj = JSON.parse(sceneData[0].jsondata);
-          console.log(sceneObj);
-          loadSnapshotObject(sceneObj);
-        });
-
+        loadSharedScene($(this).data().id);
       }
     });
   }
@@ -729,12 +739,13 @@ function onAppxLoaded() {
   });
   editor.$blockScrolling = Infinity;
 
+  //generate();
   initAudio();
-  generate();
+  loadSharedScene(28);
 
-  configCanvas();
+  // configCanvas();
+  // updateCanvas();
   mouseIsDown = false;
-  updateCanvas();
 
   var c = document.getElementById("eastCanvas");
   function getMousePos(canvas, evt) {
@@ -786,6 +797,8 @@ function onAppxLoaded() {
 //    var mousePos = getMousePos(c, evt);
     mouseIsDown = false;
   }, false);
+  //$("#listenButton").click();
+
 }
 
 $(document).ready(function(){
