@@ -47,6 +47,7 @@ make sure new function is 'off'
 
 <script type="text/javascript">
 AudioContext = AudioContext || webkitAudioContext;
+var lib;
 var appx;
 var audioCtx;
 var preGain;
@@ -833,6 +834,7 @@ $(document).ready(function(){
       if(typeof Module.approgx !== "undefined"){
           //variable exists, do what you want
           console.log("appx ready");
+          lib = Module; //make a quicker reference
           onAppxLoaded();
       }
       else{
