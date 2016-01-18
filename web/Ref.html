@@ -1,0 +1,35 @@
+<html>
+<head>
+  <link href="prism.css" rel="stylesheet" />
+  <script src="prism.js"></script>
+</head>
+<body>
+  <div><h1>Reference</h1></div>
+  <div><h2>Requirements for component functions</h2></div>
+  <pre><code class="language-javascript">
+  function myComponent() {
+   	this.play = function(j0) {
+   		return j0 + 1;
+   	}
+   }
+
+  </code></pre>
+
+  The code above demonstrates the minimum requirements for a component function. It's a function called 'play' wrapped in another function. The function 'play()' must have at least one parameter (which will be a floating point number) and must output a single number.  The function adds 1 to the variable j0. Let's look a something more interesting:
+
+  <pre><code class="language-javascript">
+    function saw() {
+         this.osc = new Module.maxiOsc();
+         this.play = function(j0) {
+           return this.osc.sawn(Module.maxiMap.linexp(j0,-1,1,20,20000));
+         }
+       }
+
+  </code></pre>
+
+  In this component function, a saw wave is generated.  This function instantiates a new maxiOsc() oscillator when initialised. The 'play' function takes one argument, which it uses as the frequency for the saw wave oscillator, mapping it into exponential frequency range using maxiMap.linexp.
+
+  <div><h1>Maximilian Audio Library</h1></div>
+  <div></div>
+</body>
+</html>

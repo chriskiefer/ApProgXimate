@@ -358,6 +358,8 @@ function onAppxLoaded() {
   $("#includeDocs").load("docs_listenmode.html", function() {
   });
   $("#includeFAQ").load("FAQ.html");
+  $("#includeRef").load("Ref.html");
+  $("#includeAbout").load("about.html");
 //  loadDefaultFunctions();
   gene = new Module.FloatVector();
   for(i=0; i < INITGENESIZE; i++) {
@@ -386,6 +388,7 @@ function onAppxLoaded() {
   apxlayout.toggle("west");
   $("#topButtonBar").hide();
   $("#listenButtonBar").show();
+  $("#RefButton").hide();
 
   $(document).on("keydown", function (e) {
       if (e.which === 8 && !$(e.target).is("input, textarea")) {
@@ -418,6 +421,7 @@ function onAppxLoaded() {
     apxlayout.toggle("west");
     $("#topButtonBar").hide();
     $("#listenButtonBar").show();
+    $("#RefButton").hide();
     $("#includeDocs").load("docs_listenmode.html", function() {
     });
   });
@@ -428,6 +432,7 @@ function onAppxLoaded() {
     apxlayout.toggle("west");
     $("#topButtonBar").show();
     $("#listenButtonBar").hide();
+    $("#RefButton").show();
     $("#includeDocs").load("docs.html", function() {
     });
   });
@@ -615,6 +620,33 @@ function onAppxLoaded() {
   $("#FAQCloseButton").button()
   .click(function() {
     $("#FAQPopup").popup('hide');
+  });
+  $("#AboutButton").button()
+  .click(function() {
+    $('#AboutPopup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
+  });
+  $("#AboutCloseButton").button()
+  .click(function() {
+    $("#AboutPopup").popup('hide');
+  });
+  $("#RefButton").button()
+  .click(function() {
+    Prism.highlightAll();
+    $('#RefPopup').popup({
+      autoopen:true,
+      color:'white',
+      outline:true,
+      transition: 'all 0.3s'
+    });
+  });
+  $("#RefCloseButton").button()
+  .click(function() {
+    $("#RefPopup").popup('hide');
   });
 
   $("#randButton").button()
@@ -902,8 +934,10 @@ $(document).ready(function(){
     <button style="font-size:100%" id="fontGrow">T</button>
   </div>
   <div style="float:right;">
-    <button id="helpButton">?</button>
+    <button id="RefButton">Reference</button>
+    <button id="helpButton">Help</button>
     <button id="FAQButton">FAQ</button>
+    <button id="AboutButton">About</button>
   </div>
 </div>
 <div class="ui-layout-center"><canvas id="eastCanvas" style="height: 100%; width: 100%;"></canvas> </div>
@@ -926,12 +960,20 @@ $(document).ready(function(){
    <button id="helpCloseButton" >Close</button>
 
  </div>
- <div id="FAQPopup" class="docPopup">
-    <div id="includeFAQ"></div>
-    <!-- Add an optional button to close the popup -->
-    <button id="FAQCloseButton">Close</button>
 
-  </div>
+<div id="FAQPopup" class="docPopup">
+  <div id="includeFAQ"></div>
+  <button id="FAQCloseButton">Close</button>
+</div>
+
+<div id="RefPopup" class="docPopup">
+  <div id="includeRef"></div>
+  <button id="RefCloseButton">Close</button>
+</div>
+<div id="AboutPopup" class="docPopup">
+  <div id="includeAbout"></div>
+  <button id="AboutCloseButton">Close</button>
+</div>
 
  <div id="saveSnapPopup" style="background:white; padding:10px; border-box:10px; max-width:30em; visibility:hidden;">
 

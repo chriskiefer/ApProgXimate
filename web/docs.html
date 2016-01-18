@@ -19,38 +19,32 @@ You can change the values on the gene in realtime, changing the way the componen
 
 <h2>Modes</h2>
 
-You can use this site in two modes - 'listen mode' and 'create mode' - and switch between them with the button in the top right hand corner of the screen.  In 'listen mode' you can explore ready-made scenes, and manipulate the sound you are listening to with the mouse.  In 'create mode', you have full access to all the elements that are making the sound, so you can program your own.
+You can use this site in two modes - 'listen mode' and 'create mode'  - and switch between them with the button in the top right hand corner of the screen.  In 'listen mode' you can explore ready-made scenes, and manipulate the sound you are listening to with the mouse.  In 'create mode', you have full access to all the elements that are making the sound, so you can program your own.
+
+<h2>How to Make Sounds</h2>
+
+<div><h3>Changing the Gene</h3></div>
+
+<div>
+The bars in the centre of the screen represent the values in the gene, ranging from -1 (on the left) to 1 (on the right).  You can mode these around with the mouse.
+As you change these values, the code will be re-generated and the sound will change.
+</div>
+<div>
+You will notice that some bars are solid black and some are outlined.  These correspond two two types of node in the generated algorithm: functions and values.
+When the algorithm is generated, the system keeps track of how each number in the gene relates to each bit of code.
+Moving an outlined bar will change a value in the gene that relates to a function, which may (or may not) cause structural changes in the algorithm.  Making a structural change causes regeneration of the code, and a small 'dropout' in the sound while this happens.
+Moving a black bar changes a variable.  This instaneously changes the sound without generating the algorithm.
+</div>
+<div>
+Each time you move an outlined bar (causing a structural change in the algorithm),  the colours of the bars in the gene may change. This is because when you make a structural change, the pattern of functions and values in the gene changes.
+</div>
+
+<div><h3>Editing Functions</h3></div>
+<div>
+In the left hand column are the component functions. These are the small functions that are the building blocks of the generated algorithm.  Clicking on a function name will show the functions code. This code is editable.
 
 
-<h2>More documentation will arrive soon!</h2>
+</div>
 
-
-<div><h1>Reference</h1></div>
-<div><h2>Requirements for component functions</h2></div>
-<pre><code class="language-javascript">
-function myComponent() {
- 	this.play = function(j0) {
- 		return j0 + 1;
- 	}
- }
-
-</code></pre>
-
-The code above demonstrates the minimum requirements for a component function. It's a function called 'play' wrapped in another function. The function 'play()' must have at least one parameter (which will be a floating point number) and must output a single number.  The function adds 1 to the variable j0. Let's look a something more interesting:
-
-<pre><code class="language-javascript">
-  function saw() {
-       this.osc = new Module.maxiOsc();
-       this.play = function(j0) {
-         return this.osc.sawn(Module.maxiMap.linexp(j0,-1,1,20,20000));
-       }
-     }
-
-</code></pre>
-
-In this component function, a saw wave is generated.  This function instantiates a new maxiOsc() oscillator when initialised. The 'play' function takes one argument, which it uses as the frequency for the saw wave oscillator, mapping it into exponential frequency range using maxiMap.linexp.
-
-<div><h2>Maximilian Audio Library</h2></div>
-<div></div>
 </body>
 </html>
