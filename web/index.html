@@ -355,7 +355,7 @@ function onAppxLoaded() {
     console.log("test");
     $("#browserCheckPopup").popup('hide');
   });
-  $("#includeDocs").load("docs.html", function() {
+  $("#includeDocs").load("docs_listenmode.html", function() {
   });
   $("#includeFAQ").load("FAQ.html");
 //  loadDefaultFunctions();
@@ -418,6 +418,8 @@ function onAppxLoaded() {
     apxlayout.toggle("west");
     $("#topButtonBar").hide();
     $("#listenButtonBar").show();
+    $("#includeDocs").load("docs_listenmode.html", function() {
+    });
   });
   $("#createButton").button()
   .click(function() {
@@ -426,6 +428,8 @@ function onAppxLoaded() {
     apxlayout.toggle("west");
     $("#topButtonBar").show();
     $("#listenButtonBar").hide();
+    $("#includeDocs").load("docs.html", function() {
+    });
   });
 
   $("#saveSnapshotFormButton").button()
