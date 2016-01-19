@@ -1,8 +1,10 @@
 var accordionID = 0;
+
 function addCodePanel(funcName, enabled) {
   //var idx = $('.codeAccordion').children().length;
   console.log(accordionID);
   console.log(funcName);
+  accordionID = getID();
   var butDel='button' + accordionID + 'del';
   var butOn='button' + accordionID + 'a';
   var butOff='button' + accordionID + 'b';

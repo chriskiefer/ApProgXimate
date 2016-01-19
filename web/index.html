@@ -22,6 +22,8 @@ make sure new function is 'off'
 
   </script>
 
+  <script src="apxUtils.js"></script>
+  <script src="interfaceConfig.js"></script>
   <script src="apxFunctions.js"></script>
   <script src="codePanel.js"></script>
   <script src="jquery-2.1.4.min.js"></script>
@@ -61,7 +63,7 @@ var analyserView1;
 var gene;
 var INITGENESIZE = 50;
 var editor;
-var GLOBALMEMSIZE=10;
+var GLOBALMEMSIZE=64;
 var globalMemory = [];
 var interfaceModes = {LISTEN:1, CREATE:2};
 var interfaceMode = interfaceModes.LISTEN;
@@ -70,18 +72,8 @@ var editorFontSize = 10;
 var dcBlocker;
 var realtimeErrorHappening = false;
 var buttonIdx = 0;
+var apxlayout;
 
-function getID() {
-  idCounter = localStorage.getItem('idCounter');
-  if (idCounter == null) {
-    idCounter = {'idx':0};
-  }else{
-    idCounter = JSON.parse(idCounter);
-  }
-  idCounter.idx++;
-  localStorage.setItem('idCounter', JSON.stringify(idCounter));
-  return idCounter.idx;
-}
 
 function process(event) {
   //Get left/right input and output arrays
@@ -350,22 +342,12 @@ function onAppxLoaded() {
   geneInfo = new Module.StringVector();
   constIndexes = new Module.UnsignedIntVector();
 
-  $("#closeBrowserPopupButton").button()
-  .click(function() {
-    console.log("test");
-    $("#browserCheckPopup").popup('hide');
-  });
-  $("#includeDocs").load("docs_listenmode.html", function() {
-  });
-  $("#includeFAQ").load("FAQ.html");
-  $("#includeRef").load("Ref.html");
-  $("#includeAbout").load("about.html");
 //  loadDefaultFunctions();
   gene = new Module.FloatVector();
   for(i=0; i < INITGENESIZE; i++) {
     gene.push_back(Math.random());
   }
-  var apxlayout = $("body").layout({
+  apxlayout = $("body").layout({
     applyDemoStyles:true,
     resizeable: true,
     west_minSize: 100,
@@ -386,9 +368,7 @@ function onAppxLoaded() {
   apxlayout.sizePane("east", 400);
   apxlayout.toggle("east");
   apxlayout.toggle("west");
-  $("#topButtonBar").hide();
-  $("#listenButtonBar").show();
-  $("#RefButton").hide();
+  prepareInterface();
 
   $(document).on("keydown", function (e) {
       if (e.which === 8 && !$(e.target).is("input, textarea")) {
@@ -410,32 +390,8 @@ function onAppxLoaded() {
   //     editor.resize()
   //   }
   // })
-  $("#realtimeErrorMessage").hide();
-  $("#syntaxErrorMessage").hide();
 
   //$("#listenButtonBar").hide();
-  $("#listenButton").button()
-  .click(function() {
-    interfaceMode = interfaceModes.LISTEN;
-    apxlayout.toggle("east");
-    apxlayout.toggle("west");
-    $("#topButtonBar").hide();
-    $("#listenButtonBar").show();
-    $("#RefButton").hide();
-    $("#includeDocs").load("docs_listenmode.html", function() {
-    });
-  });
-  $("#createButton").button()
-  .click(function() {
-    interfaceMode = interfaceModes.CREATE;
-    apxlayout.toggle("east");
-    apxlayout.toggle("west");
-    $("#topButtonBar").show();
-    $("#listenButtonBar").hide();
-    $("#RefButton").show();
-    $("#includeDocs").load("docs.html", function() {
-    });
-  });
 
   $("#saveSnapshotFormButton").button()
   .click(function() {
@@ -593,60 +549,6 @@ function onAppxLoaded() {
     editorFontSize++;
     edi && edi.setFontSize(editorFontSize);
     editor && editor.setFontSize(editorFontSize);
-  });
-  $("#helpButton").button()
-  .click(function() {
-    Prism.highlightAll();
-    $('#my_popup').popup({
-      autoopen:true,
-      color:'white',
-      outline:true,
-      transition: 'all 0.3s'
-    });
-  });
-  $("#helpCloseButton").button()
-  .click(function() {
-    $("#my_popup").popup('hide');
-  });
-  $("#FAQButton").button()
-  .click(function() {
-    $('#FAQPopup').popup({
-      autoopen:true,
-      color:'white',
-      outline:true,
-      transition: 'all 0.3s'
-    });
-  });
-  $("#FAQCloseButton").button()
-  .click(function() {
-    $("#FAQPopup").popup('hide');
-  });
-  $("#AboutButton").button()
-  .click(function() {
-    $('#AboutPopup').popup({
-      autoopen:true,
-      color:'white',
-      outline:true,
-      transition: 'all 0.3s'
-    });
-  });
-  $("#AboutCloseButton").button()
-  .click(function() {
-    $("#AboutPopup").popup('hide');
-  });
-  $("#RefButton").button()
-  .click(function() {
-    Prism.highlightAll();
-    $('#RefPopup').popup({
-      autoopen:true,
-      color:'white',
-      outline:true,
-      transition: 'all 0.3s'
-    });
-  });
-  $("#RefCloseButton").button()
-  .click(function() {
-    $("#RefPopup").popup('hide');
   });
 
   $("#randButton").button()

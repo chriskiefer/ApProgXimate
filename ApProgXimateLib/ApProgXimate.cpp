@@ -96,6 +96,22 @@ void apProgXimate::removeFDef(std::string name) {
     funcDefs.erase(name);
 }
 
+void apProgXimate::removeFDefByID(int id){
+    auto target = funcDefs.begin();
+    bool found=false;
+    for(auto it = funcDefs.begin(); it != funcDefs.end(); ++it) {
+        if (it->second.id == id) {
+            target = it;
+            found = true;
+            break;
+        }
+    }
+    if (found) {
+        funcDefs.erase(target);
+    }
+}
+
+
 void apProgXimate::geneToTree(std::vector<float> &gene, vector<vector<std::string> > &dataTypeFuncs, std::vector<std::string> &geneInfo) {
     int genePos = 0;
     unsigned int nodeId=0;
@@ -413,11 +429,12 @@ void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls
 
 };
 
-void apProgXimateJS::addFuncDef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int lim) {
+void apProgXimateJS::addFuncDef(std::string fName, std::string fDef, unsigned int numArgs, int id, unsigned int lim) {
 //    fdef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int argt[], unsigned int rType, unsigned int lim=9999999)
     unsigned int funcArgs[numArgs];
     for(int i=0; i < numArgs; i++) funcArgs[i] = JavascriptDataTypes::JS_VAR;
     fdef newDef = fdef(fName, fDef, numArgs, funcArgs, JavascriptDataTypes::JS_VAR, lim);
+    newDef.id = id;
     apProgXimate::addFuncDef(newDef);
 }
 
@@ -441,6 +458,11 @@ std::string apProgXimateJS::getCode(std::string functionName) {
 void apProgXimateJS::removeFDef(std::string name) {
     apProgXimate::removeFDef(name);
 }
+
+void apProgXimateJS::removeFDefByID(int id) {
+    apProgXimate::removeFDefByID(id);
+}
+
 
 bool apProgXimateJS::isEnabled(std::string functionName) {
     return apProgXimate::isEnabled(functionName);

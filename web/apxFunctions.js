@@ -9,6 +9,7 @@ function seq() {
 
   }
 }
+
 function loadDefaultFunctions() {
   appx.addFuncDef("add", "function add() {\n \
     this.play = function(j1, j2) {\n \

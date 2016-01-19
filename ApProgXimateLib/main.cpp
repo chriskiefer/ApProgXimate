@@ -71,7 +71,7 @@ int main(int argc, const char * argv[]) {
                         "   }\n"
                         "}\n"
                         ,
-                        1, 99999
+                        1, 0, 99999
                    );
 //    apx.apProgXimate::addFuncDef(
 //                   fdef("square",
@@ -91,7 +91,7 @@ int main(int argc, const char * argv[]) {
                         "   }\n"
                         "}\n"
                         ,
-                        2, 99999
+                        2, 1, 99999
                    );
     //redefine
     apx.addFuncDef("add",
@@ -101,7 +101,7 @@ int main(int argc, const char * argv[]) {
                    "   }\n"
                    "}\n"
                    ,
-                   2, 99999
+                   2, 2, 99999
                    );
     apx.addFuncDef("pow",
                    "function pow() {\n"
@@ -110,7 +110,7 @@ int main(int argc, const char * argv[]) {
                    "   }\n"
                    "}\n"
                    ,
-                   2, 99999
+                   2, 3, 99999
                    );
 
     //    apx.apProgXimate::addFuncDef(
@@ -158,7 +158,7 @@ int main(int argc, const char * argv[]) {
     std::string code;
 //    code = apx.genCode(gene);
 //    std::cout << code << std::endl;
-    
+//    apx.removeFDefByID(3);
     apx.enableFDef("add", true);
     apx.collectDataTypes();
     std::vector<std::string> geneInfo;

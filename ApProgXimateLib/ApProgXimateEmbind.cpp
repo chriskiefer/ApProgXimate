@@ -56,7 +56,7 @@ public:
     maxiSampleHold() : value(0) {
     }
     bool play(double w, double trig) {
-        if (trig > 0.9) {
+        if (trig > 0.5) {
             value = w;
         }
         return value;
@@ -180,10 +180,11 @@ EMSCRIPTEN_BINDINGS(my_module) {
     .function("collectDataTypes", &apProgXimateJS::collectDataTypes)
     .function("enableFDef", &apProgXimateJS::enableFDef)
     .function("removeFDef", &apProgXimateJS::removeFDef)
+    .function("removeFDefByID", &apProgXimateJS::removeFDef)
     .function("getFunctionNames", &apProgXimateJS::getFunctionNames)
     .function("getCode", &apProgXimateJS::getCode)
     .function("isEnabled", &apProgXimateJS::isEnabled)
-    .function("test", &apProgXimateJS::test)
+//    .function("test", &apProgXimateJS::test)
     ;
     
 

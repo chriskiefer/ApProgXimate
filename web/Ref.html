@@ -21,7 +21,7 @@
     function saw() {
          this.osc = new Module.maxiOsc();
          this.play = function(j0) {
-           return this.osc.sawn(Module.maxiMap.linexp(j0,-1,1,20,20000));
+           return this.osc.sawn(linexp(j0,-1,1,20,20000));
          }
        }
 
@@ -29,7 +29,106 @@
 
   In this component function, a saw wave is generated.  This function instantiates a new maxiOsc() oscillator when initialised. The 'play' function takes one argument, which it uses as the frequency for the saw wave oscillator, mapping it into exponential frequency range using maxiMap.linexp.
 
-  <div><h1>Maximilian Audio Library</h1></div>
-  <div></div>
+  <div><h2>Maximilian Library</h2></div>
+
+  <div><h3>lib.maxiOsc</h3></div>
+  <div>
+    <pre><code class="language-javascript">
+      function sawn(frequency);
+    </code></pre>
+    A band-limited saw oscillator.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function sinewave(frequency);
+    </code></pre>
+    A sine wave oscillator.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function coswave(frequency);
+    </code></pre>
+    A cosine wave oscillator.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function phasor(frequency);
+    </code></pre>
+    This oscillator moves in a line from 0 to 1 each cycle.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function phasor(frequency, startphase, endPhase);
+    </code></pre>
+    This oscillator moves in a line from [startPhase] to [endPhase] each cycle.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function saw(frequency);
+    </code></pre>
+    A saw wave oscillator, without band limiting.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function triangle(frequency);
+    </code></pre>
+    A triangle wave oscillator.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function square(frequency);
+    </code></pre>
+    A square wave oscillator.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function pulse(frequency, duty);
+    </code></pre>
+    A pulse wave oscillator.  [duty] sets the pulse width, between 0 and 1.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function noise(frequency);
+    </code></pre>
+    A white noise generator.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function sinebuf(frequency);
+    </code></pre>
+    A fast but lower quality sine wave oscillator, using a wavetable and linear interpolation.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function sinebuf4(frequency);
+    </code></pre>
+    A fast but lower quality sine wave oscillator, using a wavetable and cubic interpolation.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function phaseReset(phase);
+    </code></pre>
+    Set the phase of any oscillator to a new value.  [phase] should be between -1 and 1.
+  </div>
+
+  <div><h2>Other Javascript Functions</h2></div>
+  <div><h2>Global Memory</h2></div>
+
+  There's a global array defined in javascript, for explicly sharing values between instances of component functions.
+
+  <div>
+    <pre><code class="language-javascript">
+      var globalMemory;
+    </code></pre>
+    Read or write to this array with component functions.
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      var GLOBALMEMSIZE;
+    </code></pre>
+    The size of the global memory array.  By default, this is 64.
+  </div>
+
+
 </body>
 </html>
