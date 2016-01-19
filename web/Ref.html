@@ -112,6 +112,21 @@
   </div>
 
   <div><h2>Other Javascript Functions</h2></div>
+
+  <div>
+    <pre><code class="language-javascript">
+      function linlin(input, low, high)
+    </code></pre>
+    This is a convenience wrapper around lib.maxiMap.linlin, assuming -1 < [input] < 1.  It maps [input] linearly between [low] and [high].
+  </div>
+  <div>
+    <pre><code class="language-javascript">
+      function linexp(input, low, high)
+    </code></pre>
+    This is a convenience wrapper around lib.maxiMap.linexp, assuming -1 < [input] < 1.  It maps [input] exponentially between [low] and [high].  Make sure that [low] is more then 0.
+  </div>
+
+
   <div><h2>Global Memory</h2></div>
 
   There's a global array defined in javascript, for explicly sharing values between instances of component functions.
@@ -129,6 +144,6 @@
     The size of the global memory array.  By default, this is 64.
   </div>
 
-
+  <div style="padding:10px"></div>
 </body>
 </html>
