@@ -36,7 +36,6 @@ function addCodePanel(funcName, enabled, fId) {
   .css({"color":"white"})
   .data("enabled","1");
   $("#" + butOff).button().click({"bOn": butOn, "bOff": butOff, "row":accRowID}, function (event) {
-    console.log(event.data.funcName);
     appx.enableFDef($("#" + event.data.row).find("span.accHeader").data().id, 0);
     generate();
     $("#" + event.data.bOff).css({"background":"OrangeRed"});
@@ -51,7 +50,6 @@ function addCodePanel(funcName, enabled, fId) {
   .css({"color":"black"})
   .data("enabled","0");
   $("#" + butDel).button().click({"id":fId}, function (event) {
-    console.log("del: " + event.data.funcName);
     console.log($('#' + accRowID));
     $('#' + accRowID).remove();
     $('.codeAccordion').accordion("refresh");
