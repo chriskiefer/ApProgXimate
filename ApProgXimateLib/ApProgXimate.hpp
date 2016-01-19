@@ -23,17 +23,17 @@ class apProgXimate {
 public:
     apProgXimate();
     void addFuncDef(fdef f) {
-        funcDefs[f.functionName]= f;
+        funcDefs[f.id]= f;
     };
-    virtual void enableFDef(std::string name, bool state);
+    virtual void enableFDef(int id, bool state);
 //    virtual void enableFDefByID(std::string name, bool state);
     virtual std::string genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, std::vector<unsigned int> &constIndexes, bool clear=true) = 0;
     virtual void collectDataTypes();
     virtual void getFunctionNames(std::vector<std::string> &names);
-    virtual std::string getCode(std::string functionName);
-    virtual bool isEnabled(std::string functionName);
-    virtual void removeFDef(std::string name);
-    virtual void removeFDefByID(int id);
+    virtual void getFunctionIds(std::vector<int> &ids);
+    virtual std::string getCode(int id);
+    virtual bool isEnabled(int id);
+    virtual void removeFDef(int id);
     
 protected:
     
@@ -64,7 +64,7 @@ protected:
     };
     
 //    std::vector<fdef> funcDefs;
-    std::map<std::string, fdef> funcDefs;
+    std::map<int, fdef> funcDefs;
     codeTreeNode *root;
     std::vector<constNodeDescriptor> constNodes;
     
@@ -75,9 +75,12 @@ protected:
     virtual unsigned int getNumDataTypes();
     virtual void dataTypeToCode(unsigned int dataType, std::stringstream &code, float value);
     void clearTree();
-    void geneToTree(std::vector<float> &gene, std::vector<std::vector<std::string> > &dataTypeFuncs, std::vector<std::string> &geneInfo);
-    std::vector<std::vector<std::string> > dataTypeFuncs;
+    void geneToTree(std::vector<float> &gene, std::vector<std::vector<int> > &dataTypeFuncs, std::vector<std::string> &geneInfo);
+    std::vector<std::vector<int> > dataTypeFuncs;
     std::vector<unsigned int> funcIndexMap;
+    
+    int lastID=0;
+    int getNextID(){return lastID++;}
 
     
 };
@@ -105,14 +108,17 @@ class apProgXimateJS : public apProgXimate {
 public:
     apProgXimateJS();
     std::string genCode(std::vector<float> &gene, std::vector<std::string> &geneInfo, std::vector<unsigned int> &constIndexes, bool clear=true) override;
-    void addFuncDef(std::string fName, std::string fDef, unsigned int numArgs, int id = -1, unsigned int lim=9999999);
+    
+    int addFuncDef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int lim=9999999);
+    void updateFuncDef(std::string fName, std::string fDef, unsigned int numArgs, int id, unsigned int lim=9999999);
     void collectDataTypes() override;
-    void enableFDef(std::string name, bool state) override;
+    void enableFDef(int id, bool state) override;
     void getFunctionNames(std::vector<std::string> &names) override;
-    std::string getCode(std::string functionName) override;
-    void removeFDef(std::string name) override;
-    void removeFDefByID(int id) override;
-    bool isEnabled(std::string functionName) override;
+    void getFunctionIds(std::vector<int> &ids) override;
+    std::string getCode(int id) override;
+    void removeFDef(int id) override;
+//    void removeFDefByID(int id) override;
+    bool isEnabled(int id) override;
 protected:
     std::string dataTypeToString(unsigned int t) override;
     unsigned int getFirstDataType() override;

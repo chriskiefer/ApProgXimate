@@ -1,6 +1,6 @@
 var accordionID = 0;
 
-function addCodePanel(funcName, enabled) {
+function addCodePanel(funcName, enabled, fId) {
   //var idx = $('.codeAccordion').children().length;
   console.log(accordionID);
   console.log(funcName);
@@ -9,7 +9,7 @@ function addCodePanel(funcName, enabled) {
   var butOn='button' + accordionID + 'a';
   var butOff='button' + accordionID + 'b';
   var accRowID = 'accRow' + accordionID;
-  var newDiv = '<div id="' + accRowID + '"><h1><span class="accHeader">' + funcName +
+  var newDiv = '<div id="' + accRowID + '"><h1><span data-id="' + fId + '" class="accHeader">' + funcName +
   '</span><div id="onOffRadioSet' + accordionID + '" class="onOffRadios"><button id="' + butDel + '" class="delButton">Delete</button><button data-enabled="1" id="' + butOn + '" class="onButton">On</button><button data-enabled="1" id="' + butOff + '" class="offButton">Off</button>' +
   '</div>' +
   '</h1><div class="editorPanel"></div></div>';
@@ -20,7 +20,8 @@ function addCodePanel(funcName, enabled) {
   console.log("added div");
   $('.codeAccordion').append(newDiv)
   $("#" + butOn).button().click({"bOn": butOn, "bOff": butOff, "row":accRowID}, function (event) {
-    appx.enableFDef($("#" + event.data.row).find("span.accHeader").html(), 1);
+    console.log($("#" + event.data.row).find("span.accHeader").data().id);
+    appx.enableFDef($("#" + event.data.row).find("span.accHeader").data().id, 1);
     //console.log($("#" + event.data.row).find("span.accHeader").html());
     generate();
     $("#" + event.data.bOn).css({"background":"LimeGreen"});
@@ -36,7 +37,7 @@ function addCodePanel(funcName, enabled) {
   .data("enabled","1");
   $("#" + butOff).button().click({"bOn": butOn, "bOff": butOff, "row":accRowID}, function (event) {
     console.log(event.data.funcName);
-    appx.enableFDef($("#" + event.data.row).find("span.accHeader").html(), 0);
+    appx.enableFDef($("#" + event.data.row).find("span.accHeader").data().id, 0);
     generate();
     $("#" + event.data.bOff).css({"background":"OrangeRed"});
     $("#" + event.data.bOff).css({"color":"white"});
@@ -49,12 +50,12 @@ function addCodePanel(funcName, enabled) {
   .css({"background":"white"})
   .css({"color":"black"})
   .data("enabled","0");
-  $("#" + butDel).button().click({"funcName":funcName}, function (event) {
+  $("#" + butDel).button().click({"id":fId}, function (event) {
     console.log("del: " + event.data.funcName);
     console.log($('#' + accRowID));
     $('#' + accRowID).remove();
     $('.codeAccordion').accordion("refresh");
-    appx.removeFDef(event.data.funcName);
+    appx.removeFDef(event.data.id);
     generate();
     $('.codeAccordion').find(".delButton").css({"visibility":"hidden"});
     return false;

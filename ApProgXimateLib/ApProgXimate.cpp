@@ -88,31 +88,31 @@ void apProgXimate::clearTree() {
     
 }
 
-void apProgXimate::enableFDef(std::string name, bool state) {
-    funcDefs[name].enabled = state;
+void apProgXimate::enableFDef(int id, bool state) {
+    funcDefs[id].enabled = state;
 }
 
-void apProgXimate::removeFDef(std::string name) {
-    funcDefs.erase(name);
+void apProgXimate::removeFDef(int id) {
+    funcDefs.erase(id);
 }
 
-void apProgXimate::removeFDefByID(int id){
-    auto target = funcDefs.begin();
-    bool found=false;
-    for(auto it = funcDefs.begin(); it != funcDefs.end(); ++it) {
-        if (it->second.id == id) {
-            target = it;
-            found = true;
-            break;
-        }
-    }
-    if (found) {
-        funcDefs.erase(target);
-    }
-}
+//void apProgXimate::removeFDefByID(int id){
+//    auto target = funcDefs.begin();
+//    bool found=false;
+//    for(auto it = funcDefs.begin(); it != funcDefs.end(); ++it) {
+//        if (it->second.id == id) {
+//            target = it;
+//            found = true;
+//            break;
+//        }
+//    }
+//    if (found) {
+//        funcDefs.erase(target);
+//    }
+//}
 
 
-void apProgXimate::geneToTree(std::vector<float> &gene, vector<vector<std::string> > &dataTypeFuncs, std::vector<std::string> &geneInfo) {
+void apProgXimate::geneToTree(std::vector<float> &gene, vector<vector<int> > &dataTypeFuncs, std::vector<std::string> &geneInfo) {
     int genePos = 0;
     unsigned int nodeId=0;
     while(genePos < gene.size()) {
@@ -142,11 +142,11 @@ void apProgXimate::geneToTree(std::vector<float> &gene, vector<vector<std::strin
         }
         
         //--choose a function
-        vector<std::string> *fMap = &dataTypeFuncs[searchForDataType];
+        vector<int> *fMap = &dataTypeFuncs[searchForDataType];
 //        int functionIndex = floor(gene[genePos] * fMap->size() * 0.99999);
         int functionIndex = floor(funcChoice * fMap->size() * 0.99999);
-        string fdefName = fMap->at(functionIndex);
-        fdef* newFunc = &funcDefs[fdefName];
+        int fdefid = fMap->at(functionIndex);
+        fdef* newFunc = &funcDefs[fdefid];
 //        geneInfo[genePos] = fdefName;
 //        genePos++;
         if(genePos + newFunc->argTypes.size() - 1 < gene.size()) {
@@ -197,16 +197,24 @@ unsigned int apProgXimate::getFirstDataType() {
 void apProgXimate::getFunctionNames(std::vector<std::string> &names) {
     names.clear();
     for(auto it = funcDefs.begin(); it != funcDefs.end(); ++it) {
-        names.push_back(it->first);
+        names.push_back(it->second.functionName);
     }
 }
 
-std::string apProgXimate::getCode(std::string functionName) {
-    return funcDefs[functionName].functionDef;
+void apProgXimate::getFunctionIds(std::vector<int> &ids) {
+    ids.clear();
+    for(auto it = funcDefs.begin(); it != funcDefs.end(); ++it) {
+        ids.push_back(it->first);
+    }
 }
 
-bool apProgXimate::isEnabled(std::string functionName) {
-    return funcDefs[functionName].enabled;
+
+std::string apProgXimate::getCode(int id) {
+    return funcDefs[id].functionDef;
+}
+
+bool apProgXimate::isEnabled(int id) {
+    return funcDefs[id].enabled;
 }
 
 
@@ -429,8 +437,18 @@ void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls
 
 };
 
-void apProgXimateJS::addFuncDef(std::string fName, std::string fDef, unsigned int numArgs, int id, unsigned int lim) {
-//    fdef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int argt[], unsigned int rType, unsigned int lim=9999999)
+int apProgXimateJS::addFuncDef(std::string fName, std::string fDef, unsigned int numArgs, unsigned int lim) {
+//    unsigned int funcArgs[numArgs];
+//    for(int i=0; i < numArgs; i++) funcArgs[i] = JavascriptDataTypes::JS_VAR;
+//    fdef newDef = fdef(fName, fDef, numArgs, funcArgs, JavascriptDataTypes::JS_VAR, lim);
+//    newDef.id = apProgXimate::getNextID();
+//    apProgXimate::addFuncDef(newDef);
+    int newID =  apProgXimate::getNextID();
+    updateFuncDef(fName, fDef, numArgs, newID, lim);
+    return newID;
+}
+
+void apProgXimateJS::updateFuncDef(std::string fName, std::string fDef, unsigned int numArgs, int id, unsigned int lim) {
     unsigned int funcArgs[numArgs];
     for(int i=0; i < numArgs; i++) funcArgs[i] = JavascriptDataTypes::JS_VAR;
     fdef newDef = fdef(fName, fDef, numArgs, funcArgs, JavascriptDataTypes::JS_VAR, lim);
@@ -438,32 +456,38 @@ void apProgXimateJS::addFuncDef(std::string fName, std::string fDef, unsigned in
     apProgXimate::addFuncDef(newDef);
 }
 
+
 void apProgXimateJS::collectDataTypes() {
     apProgXimate::collectDataTypes();
 }
 
-void apProgXimateJS::enableFDef(std::string name, bool state) {
-    printf("%s %d", name.c_str(), state);
-    apProgXimate::enableFDef(name, state);
+void apProgXimateJS::enableFDef(int id, bool state) {
+//    printf("%s %d", name.c_str(), state);
+    apProgXimate::enableFDef(id, state);
 }
 
 void apProgXimateJS::getFunctionNames(std::vector<std::string> &names) {
     apProgXimate::getFunctionNames(names);
 }
 
-std::string apProgXimateJS::getCode(std::string functionName) {
-    return apProgXimate::getCode(functionName);
-}
-
-void apProgXimateJS::removeFDef(std::string name) {
-    apProgXimate::removeFDef(name);
-}
-
-void apProgXimateJS::removeFDefByID(int id) {
-    apProgXimate::removeFDefByID(id);
+void apProgXimateJS::getFunctionIds(std::vector<int> &ids) {
+    apProgXimate::getFunctionIds(ids);
 }
 
 
-bool apProgXimateJS::isEnabled(std::string functionName) {
-    return apProgXimate::isEnabled(functionName);
+std::string apProgXimateJS::getCode(int id) {
+    return apProgXimate::getCode(id);
+}
+
+void apProgXimateJS::removeFDef(int id) {
+    apProgXimate::removeFDef(id);
+}
+
+//void apProgXimateJS::removeFDefByID(int id) {
+//    apProgXimate::removeFDefByID(id);
+//}
+
+
+bool apProgXimateJS::isEnabled(int id) {
+    return apProgXimate::isEnabled(id);
 }

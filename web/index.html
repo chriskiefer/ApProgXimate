@@ -289,9 +289,9 @@ function loadSnapshotObject(snap) {
         if (testInst.play != undefined) {
           console.log("function check passed");
           var numArgs = testInst.play.length;
-          appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
-          appx.enableFDef(checker.name, snap.funcsEnabled[i]);
-          addCodePanel(checker.name, snap.funcsEnabled[i]);
+          fId = appx.addFuncDef(checker.name, snap.funcs[i], numArgs, 99999);
+          appx.enableFDef(fId, snap.funcsEnabled[i]);
+          addCodePanel(checker.name, snap.funcsEnabled[i], fId);
         }else{
           console.log("function check failed");
         }
@@ -402,13 +402,13 @@ function onAppxLoaded() {
     newSnap.geneSize = gene.size();
     newSnap.gene = new Array(gene.size());
     for(i=0; i < gene.size(); i++) newSnap.gene[i] = gene.get(i);
-    functionNames = new Module.StringVector();
-    newSnap.funcs = new Array(functionNames.size());
-    newSnap.funcsEnabled = new Array(functionNames.size());
-    appx.getFunctionNames(functionNames);
-    for(i=0; i < functionNames.size(); i++) {
-      newSnap.funcs[i] = appx.getCode(functionNames.get(i));
-      newSnap.funcsEnabled[i] = appx.isEnabled(functionNames.get(i));
+    functionIds = new Module.IntVector();
+    appx.getFunctionNames(functionIds);
+    newSnap.funcs = new Array(functionIds.size());
+    newSnap.funcsEnabled = new Array(functionsIds.size());
+    for(i=0; i < functionIds.size(); i++) {
+      newSnap.funcs[i] = appx.getCode(functionIds.get(i));
+      newSnap.funcsEnabled[i] = appx.isEnabled(functionIds.get(i));
     }
     if ($('#saveSnapshotForm #snapShare').is(':checked')) {
       //save online
@@ -475,7 +475,7 @@ function onAppxLoaded() {
       var rows = $('.codeAccordion').find("span.accHeader");
       console.log(rows.first().html());
       rows.each(function(i) {
-        appx.removeFDef($(this).html());
+        appx.removeFDef($(this).data().id);
       })
       rows = $('.codeAccordion').children();
       $.each(rows, function(idx,val){
@@ -573,7 +573,7 @@ function onAppxLoaded() {
   $("#addCodeButton").button()
   .click(function() {
     console.log("Add");
-    appx.addFuncDef("renameMe", "//add some comments about your function here\nfunction renameMe() {\n \
+    fId = appx.addFuncDef("renameMe", "//add some comments about your function here\nfunction renameMe() {\n \
 \t//add state variables here, e.g.\n\
 \t//this.osc = new Module.maxiOsc();\n \
 \tthis.play = function(j0) {\n \
@@ -582,7 +582,7 @@ function onAppxLoaded() {
 \t}\n \
 }\n", 1, 99999);
 
-    addCodePanel("renameMe", true);
+    addCodePanel("renameMe", true, fId);
     $('.codeAccordion').accordion("refresh");
   });
   $("#deleteCodeButton").button()
@@ -606,7 +606,9 @@ function onAppxLoaded() {
       // });
       var titleNode = ui.newHeader.find("span.accHeader");
       var funcName = titleNode.html();
+      var funcId = titleNode.data().id;
       console.log(titleNode.html());
+      console.log(funcId);
       if (ui.newHeader.length==0) {
         ui.newPanel.empty()
         ui.oldPanel.empty();
@@ -623,7 +625,7 @@ function onAppxLoaded() {
           autoScrollEditorIntoView: false,
         });
         edi.$blockScrolling = Infinity;
-        edi.setValue(appx.getCode(funcName));
+        edi.setValue(appx.getCode(funcId));
         edi.clearSelection();
         edi.on("change", function(e) {
           try {
@@ -636,18 +638,18 @@ function onAppxLoaded() {
               if (testInst.play != undefined) {
                 console.log("function check passed");
                 $("#syntaxErrorMessage").hide();
-                if (checker.name != titleNode.html()) {
-                  console.log("removing: " + titleNode.html());
-                  appx.removeFDef(titleNode.html());
-                  titleNode.html(checker.name);
-                }
+                // if (checker.name != titleNode.html()) {
+                //   console.log("removing: " + titleNode.html());
+                //   appx.removeFDef(funcId);
+               titleNode.html(checker.name);
+                // }
                 var numArgs = testInst.play.length;
                 console.log(numArgs);
                 console.log(ui.newHeader.find("button.onButton").data("enabled"));
                 console.log(ui.newHeader.find("button.offButton").data("enabled"));
-                appx.addFuncDef(checker.name, edi.getValue(), numArgs, 99999);
+                appx.updateFuncDef(checker.name, edi.getValue(), numArgs, funcId, 99999);
                 if (ui.newHeader.find("button.onButton").data("enabled")==0) {
-                    appx.enableFDef(checker.name, false);
+                    appx.enableFDef(funcId, false);
                 }else{
                     generate();
                 }

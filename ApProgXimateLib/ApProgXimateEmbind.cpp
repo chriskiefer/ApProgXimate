@@ -14,7 +14,7 @@
 
  emcc --bind -O2 --memory-init-file 0 -o apProgXimate.js -I/Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs  ApProgXimateEmbind.cpp ApProgXimate.cpp /Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs/maximilian.cpp
  
-  emcc --bind -O2 -s TOTAL_MEMORY=268435456 -o apProgXimate.js -I/Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs  ApProgXimateEmbind.cpp ApProgXimate.cpp /Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs/maximilian.cpp --preload-file samples/distortedkick10.wav
+  emcc --bind -O2 -s TOTAL_MEMORY=268435456 -o apProgXimate.js -I/Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs  ApProgXimateEmbind.cpp ApProgXimate.cpp /Volumes/LocalDataHD/src/Maximilian/ofxMaxim/ofxMaxim/libs/maximilian.cpp --preload-file samples
  
  
  https://kripken.github.io/emscripten-site/docs/getting_started/Tutorial.html#tutorial-files
@@ -177,11 +177,13 @@ EMSCRIPTEN_BINDINGS(my_module) {
     .constructor<>()
     .function("genCode", &apProgXimateJS::genCode)
     .function("addFuncDef", &apProgXimateJS::addFuncDef)
+    .function("updateFuncDef", &apProgXimateJS::updateFuncDef)
     .function("collectDataTypes", &apProgXimateJS::collectDataTypes)
     .function("enableFDef", &apProgXimateJS::enableFDef)
     .function("removeFDef", &apProgXimateJS::removeFDef)
     .function("removeFDefByID", &apProgXimateJS::removeFDef)
     .function("getFunctionNames", &apProgXimateJS::getFunctionNames)
+    .function("getFunctionIds", &apProgXimateJS::getFunctionIds)
     .function("getCode", &apProgXimateJS::getCode)
     .function("isEnabled", &apProgXimateJS::isEnabled)
 //    .function("test", &apProgXimateJS::test)
@@ -190,6 +192,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
 
     register_vector<float>("FloatVector");
     register_vector<unsigned int>("UnsignedIntVector");
+    register_vector<int>("IntVector");
     register_vector<std::string>("StringVector");
     register_map<std::string, std::string>("StringMap");
     

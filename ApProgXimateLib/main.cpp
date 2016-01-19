@@ -63,7 +63,7 @@ int main(int argc, const char * argv[]) {
     
     
     
-    apx.addFuncDef("saw",
+    int fSaw = apx.addFuncDef("saw",
                         "function saw() {\n"
                         "   this.osc = new Module.maxiOsc();\n"
                         "   this.play = function(j0) {\n"
@@ -71,7 +71,7 @@ int main(int argc, const char * argv[]) {
                         "   }\n"
                         "}\n"
                         ,
-                        1, 0, 99999
+                        1, 99999
                    );
 //    apx.apProgXimate::addFuncDef(
 //                   fdef("square",
@@ -84,33 +84,33 @@ int main(int argc, const char * argv[]) {
 //                        ,
 //                        1, (unsigned int[]) {JS_VAR}, JS_VAR)
 //                   );
-    apx.addFuncDef("add",
+    int fAdd = apx.addFuncDef("add",
                         "function add() {\n"
                         "   this.play = function(j1, j2) {\n"
                         "       return j1 + j2;\n"
                         "   }\n"
                         "}\n"
                         ,
-                        2, 1, 99999
+                        2, 99999
                    );
     //redefine
-    apx.addFuncDef("add",
+    apx.updateFuncDef("add",
                    "function add() {\n"
                    "   this.play = function(j1, j0) {\n"
                    "       return j1 + j0;\n"
                    "   }\n"
                    "}\n"
                    ,
-                   2, 2, 99999
+                   2, fAdd, 99999
                    );
-    apx.addFuncDef("pow",
+    int fPow = apx.addFuncDef("pow",
                    "function pow() {\n"
                    "   this.play = function(j1, j0) {\n"
                    "       return Math.pow(j1, j0);\n"
                    "   }\n"
                    "}\n"
                    ,
-                   2, 3, 99999
+                   2, 99999
                    );
 
     //    apx.apProgXimate::addFuncDef(
@@ -136,12 +136,12 @@ int main(int argc, const char * argv[]) {
 //    apx.enableFDef("add", false);
 //    apx.removeFDef("pow");
 //
-//    std::vector<std::string> funcNames;
-//    apx.getFunctionNames(funcNames);
-//    for(auto it=funcNames.begin(); it != funcNames.end(); ++it) {
-//        cout << *it << endl;
-//    }
-//
+    std::vector<std::string> funcNames;
+    apx.getFunctionNames(funcNames);
+    for(auto it=funcNames.begin(); it != funcNames.end(); ++it) {
+        cout << *it << endl;
+    }
+
 //    apx.collectDataTypes();
 //    
 //
@@ -159,7 +159,7 @@ int main(int argc, const char * argv[]) {
 //    code = apx.genCode(gene);
 //    std::cout << code << std::endl;
 //    apx.removeFDefByID(3);
-    apx.enableFDef("add", true);
+    apx.enableFDef(fAdd, true);
     apx.collectDataTypes();
     std::vector<std::string> geneInfo;
     std::vector<unsigned int> constIndexes;
