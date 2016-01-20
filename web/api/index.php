@@ -13,7 +13,7 @@ $app = new \Slim\App;
 $app->get('/scenes', function (Request $request, Response $response) {
     //$name = $request->getAttribute('name');
     $conn = mysqlConnect();
-    $sth = $conn->query("SELECT id, nickname as nickName, title, description as 'desc' from scenes");
+    $sth = $conn->query("SELECT id, nickname as nickName, title, description as 'desc' from scenes ORDER BY added DESC");
     $rows = array();
     while($r = mysqli_fetch_assoc($sth)) {
         $rows[] = $r;
