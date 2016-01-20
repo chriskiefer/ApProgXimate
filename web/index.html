@@ -605,14 +605,14 @@ function onAppxLoaded() {
       //   return this.nodeType == 3;
       // });
       var titleNode = ui.newHeader.find("span.accHeader");
-      console.log(titleNode);
-      console.log(funcId);
       if (ui.newHeader.length==0) {
         ui.newPanel.empty()
         ui.oldPanel.empty();
       } else {
         var funcName = titleNode.html();
         var funcId = titleNode.data().id;
+        console.log(titleNode);
+        console.log(funcId);
         ui.oldPanel.empty();
         //ui.oldPanel.append('<pre id="edit8"></pre>')
         ui.newPanel.html('<pre id="edit8"></pre>')
