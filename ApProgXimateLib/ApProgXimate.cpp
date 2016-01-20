@@ -417,7 +417,7 @@ void apProgXimateJS::traverseJS(codeTreeNode *node, std::stringstream &codeDecls
     }else{
         codeBody << endl;
         stringstream varName;
-        varName << ((codeNode*)node)->funcDef->functionName << ((codeNode*)node)->id;
+        varName << ((codeNode*)node)->funcDef->functionName << "_" << ((codeNode*)node)->id;
         geneInfo[node->fromGenePos] = varName.str();
         codeDecls << "var " << varName.str() << " = new " << ((codeNode*)node)->funcDef->functionName << "();\n";
         cleanupCode << "\t_dispose(" << varName.str() << ");\n";
