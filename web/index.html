@@ -403,9 +403,9 @@ function onAppxLoaded() {
     newSnap.gene = new Array(gene.size());
     for(i=0; i < gene.size(); i++) newSnap.gene[i] = gene.get(i);
     functionIds = new Module.IntVector();
-    appx.getFunctionNames(functionIds);
+    appx.getFunctionIds(functionIds);
     newSnap.funcs = new Array(functionIds.size());
-    newSnap.funcsEnabled = new Array(functionsIds.size());
+    newSnap.funcsEnabled = new Array(functionIds.size());
     for(i=0; i < functionIds.size(); i++) {
       newSnap.funcs[i] = appx.getCode(functionIds.get(i));
       newSnap.funcsEnabled[i] = appx.isEnabled(functionIds.get(i));
