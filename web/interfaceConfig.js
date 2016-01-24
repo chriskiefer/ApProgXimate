@@ -1,4 +1,6 @@
 function prepareInterface() {
+
+
   $("#closeBrowserPopupButton").button()
   .click(function() {
     $("#browserCheckPopup").popup('hide');
@@ -35,6 +37,7 @@ function prepareInterface() {
     $("#RefButton").show();
     $("#includeDocs").load("docs.html", function() {
     });
+    $('.codeAccordion').accordion("refresh");
   });
   $("#helpButton").button()
   .click(function() {

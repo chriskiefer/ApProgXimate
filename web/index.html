@@ -47,8 +47,9 @@ make sure new function is 'off'
   </style>*/
   </style>
 
+
 <script type="text/javascript">
-AudioContext = AudioContext || webkitAudioContext;
+//AudioContext = AudioContext || webkitAudioContext;
 var lib;
 var appx;
 var audioCtx;
@@ -152,7 +153,13 @@ function randomiseGene() {
 }
 
 function initAudio() {
-  audioCtx = new AudioContext();
+  if('webkitAudioContext' in window) {
+      audioCtx = new webkitAudioContext();
+  }else{
+    audioCtx = new AudioContext();
+  }
+
+  //audioCtx = new AudioContext();
 
   dcBlocker = new Module.maxiDCBlocker();
   // audioCtx = new AudioContext();
@@ -332,6 +339,9 @@ function loadSharedScene(idx) {
 }
 
 function onAppxLoaded() {
+  $("#apxTitle").show();
+  $("#helpButton").show();
+
   appx = new Module.approgx();
   if (localStorage.getItem('snapshots') != null) {
     snapShots = JSON.parse(localStorage.getItem('snapshots'));
@@ -802,7 +812,7 @@ $(document).ready(function(){
     </pre>
   </div>
   <div class="ui-layout-north">
-    <div class="titlestyle">ApProgXimate Audio</div>
+    <div id="apxTitle" class="titlestyle" style="display:none;">ApProgXimate Audio</div>
   <!-- <button onclick="startRecording(this);">record</button>
   <button onclick="stopRecording(this);" disabled>stop</button>
   <ul id="recordingslist"></ul> -->
@@ -838,8 +848,8 @@ $(document).ready(function(){
     <button style="font-size:100%" id="fontGrow">T</button>
   </div>
   <div style="float:right;">
-    <button id="RefButton">Reference</button>
-    <button id="helpButton">Help</button>
+    <button id="RefButton" style="display:none;">Reference</button>
+    <button id="helpButton" style="display:none;">Help</button>
     <button id="FAQButton">FAQ</button>
     <button id="AboutButton">About</button>
   </div>
