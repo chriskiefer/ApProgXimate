@@ -74,7 +74,7 @@ var dcBlocker;
 var realtimeErrorHappening = false;
 var buttonIdx = 0;
 var apxlayout;
-
+var uCopy;
 
 function process(event) {
   //Get left/right input and output arrays
@@ -284,6 +284,11 @@ function saveSnapshots() {
   localStorage.setItem('snapshots', JSON.stringify(snapShots));
 }
 
+function backupParams() {
+  uCopy = new Array(u.length);
+  for(i=0; i < u.length; i++) uCopy[i] = u[i];
+}
+
 function loadSnapshotObject(snap) {
   for(i=0; i < snap.funcs.length; i++) {
     console.log(snap.funcs[i]);
@@ -323,6 +328,7 @@ function loadSnapshotObject(snap) {
   generate();
   configCanvas();
   updateCanvas();
+  backupParams();
   $('#loadSnapPopup').popup('hide');
 }
 
@@ -462,6 +468,15 @@ function onAppxLoaded() {
   $('#listenLoadButton').button()
   .click(function() {
     $("#loadSnapButton").click();
+  });
+  $('#listenResetButton').button()
+  .click(function() {
+    for(i=0; i < constIndexes.size(); i++) {
+      u[i] = uCopy[i];
+      geneIdx = constIndexes.get(i);
+      gene.set(geneIdx, (u[i] + 1.0)/2.0);
+    }
+    updateCanvas();
   });
 
   function addSnapShotToLoadDialog(e, isLocal, snapID) {
@@ -817,6 +832,9 @@ $(document).ready(function(){
   <button onclick="stopRecording(this);" disabled>stop</button>
   <ul id="recordingslist"></ul> -->
   <div id="listenButtonBar">
+    <button id="listenResetButton">
+      Reset
+    </button>
     <button id="listenLoadButton">
       Load Scene
     </button>

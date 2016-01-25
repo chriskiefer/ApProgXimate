@@ -26,6 +26,7 @@ function prepareInterface() {
     $("#RefButton").hide();
     $("#includeDocs").load("docs_listenmode.html", function() {
     });
+    backupParams();
   });
   $("#createButton").button()
   .click(function() {
