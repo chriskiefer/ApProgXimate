@@ -582,16 +582,22 @@ function onAppxLoaded() {
     generate();
     updateCanvas();
   });
+  function updateGeneSize(newSize) {
+    gene.resize(newSize,0);
+    randomiseGene();
+    generate();
+    configCanvas();
+    updateCanvas();
+  }
   $("#geneSizeSpinner").spinner({
     min:5,
     max:1000,
     //todo: handle text editing here
     spin: function(ev, ui) {
-      gene.resize(ui.value,0);
-      randomiseGene();
-      generate();
-      configCanvas();
-      updateCanvas();
+      updateGeneSize(ui.value);
+    },
+    change: function(ev, ui) {
+      updateGeneSize(parseInt($("#geneSizeSpinner").val(), 10));
     }
   }).val(gene.size()).width(30);
   //$("#geneSizeSpinner").value(10);
