@@ -9,3 +9,11 @@ function getID() {
   localStorage.setItem('idCounter', JSON.stringify(idCounter));
   return idCounter.idx;
 }
+
+function getUrlVars() {
+  var vars = {};
+  var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+    vars[key] = value;
+  });
+  return vars;
+}
