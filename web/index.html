@@ -341,7 +341,8 @@ function loadSharedScene(idx) {
     console.log(sceneObj);
     loadSnapshotObject(sceneObj);
     ga('send', 'pageview', 'api/scene');
-    window.history.pushState("ApProgX", "ApProgXimate Audio", "/apx/?s=" + idx);
+
+    window.history.pushState("ApProgX", "ApProgXimate Audio", window.location.pathname + "?s=" + idx);
   });
 }
 
@@ -511,7 +512,7 @@ function onAppxLoaded() {
       if ($(this).data().local) {
         snap = snapShots[$(this).data().id];
         loadSnapshotObject(snap);
-        window.history.pushState("ApProgX", "ApProgXimate Audio", "/apx/");
+        window.history.pushState("ApProgX", "ApProgXimate Audio", window.location.pathname);
       }else{
         loadSharedScene($(this).data().id);
       }
